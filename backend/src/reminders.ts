@@ -1,11 +1,12 @@
 import cron from 'node-cron';
 import nodemailer from 'nodemailer';
-import { prisma } from './index';
+import { prisma } from './prisma';
 import { rolloverTasks } from './tasks';
 
 interface Task {
   title: string;
   scheduledDate: Date;
+  scheduledTime?: string | null;
   isCompleted: boolean;
 }
 

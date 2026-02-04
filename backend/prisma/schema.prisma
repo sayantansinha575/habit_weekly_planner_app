@@ -1,6 +1,5 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -8,31 +7,48 @@ generator client {
 }
 
 model User {
-  id                String   @id @default(uuid())
-  email             String   @unique
-  passwordHash      String
-  whatsappNumber    String?
+  id              String  @id @default(uuid())
+  email           String  @unique
+  passwordHash    String
+  whatsappNumber  String?
+  username        String?
+  profilePhotoUrl String?
+
+  // Stats
   dailyStreak       Int      @default(0)
   weeklyStreak      Int      @default(0)
   streakFreezeCount Int      @default(0)
   lastActiveAt      DateTime @default(now())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+
+  // Subscription
+  subscriptionStatus  SubscriptionStatus @default(FREE)
+  trialStartDate      DateTime?
+  subscriptionEndDate DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
   tasks             Task[]
+  dailySteps        DailyStep[]
+  notificationPrefs NotificationPreference?
+  userAchievements  UserAchievement[]
 }
 
 model Task {
-  id            String    @id @default(uuid())
-  title         String
-  description   String?
-  isCompleted   Boolean   @default(false)
-  isAutoRolled  Boolean   @default(false)
-  rolledCount   Int       @default(0)
-  scheduledDate DateTime
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                    String   @id @default(uuid())
+  title                 String
+  description           String?
+  isCompleted           Boolean  @default(false)
+  isAutoRolled          Boolean  @default(false)
+  rolledCount           Int      @default(0)
+  scheduledDate         DateTime
+  scheduledTime         String? // e.g. "14:30"
+  isNotificationEnabled Boolean  @default(true)
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id])
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 model Template {
@@ -40,7 +56,72 @@ model Template {
   title       String
   icon        String
   description String
-  tasks       Json     // Store default tasks as JSON
+  tasks       Json // Store default tasks as JSON
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// New Models
+
+enum SubscriptionStatus {
+  FREE
+  TRIAL
+  PREMIUM
+  EXPIRED
+}
+
+model DailyStep {
+  id     String   @id @default(uuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id])
+  date   DateTime @db.Date // Store as date only
+  count  Int      @default(0)
+  goal   Int      @default(10000)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+}
+
+model NotificationPreference {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  habitReminders   Boolean @default(true)
+  motivationAlerts Boolean @default(true)
+  stepMilestones   Boolean @default(true)
+  weatherNudges    Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
+}
+
+model Achievement {
+  id          String  @id @default(uuid())
+  title       String
+  description String
+  icon        String
+  condition   String? // e.g. "7_day_streak"
+
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  achievementId String
+  user          User        @relation(fields: [userId], references: [id])
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+model Quote {
+  id        String    @id @default(uuid())
+  text      String
+  author    String?
+  category  String?
+  shownDate DateTime? @db.Date
 }

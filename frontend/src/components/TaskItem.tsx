@@ -8,17 +8,20 @@ export interface TaskItemProps {
   isCompleted: boolean;
   isAutoRolled?: boolean;
   onToggle?: () => void;
+  onEdit?: () => void;
 }
 
-const TaskItem = ({ title, isCompleted, isAutoRolled, onToggle }: TaskItemProps) => {
+const TaskItem = ({ title, isCompleted, isAutoRolled, onToggle, onEdit }: TaskItemProps) => {
   return (
-    <TouchableOpacity style={styles.container} onPress={onToggle}>
+    <TouchableOpacity style={styles.container} onPress={onEdit} activeOpacity={0.7}>
       <View style={styles.leftSection}>
-        {isCompleted ? (
-          <CheckCircle2 color={Colors.success} size={24} />
-        ) : (
-          <Circle color={Colors.textMuted} size={24} />
-        )}
+        <TouchableOpacity onPress={onToggle}>
+          {isCompleted ? (
+            <CheckCircle2 color={Colors.success} size={24} />
+          ) : (
+            <Circle color={Colors.textMuted} size={24} />
+          )}
+        </TouchableOpacity>
         <View style={styles.textContainer}>
           <Text style={[styles.title, isCompleted && styles.completedText]}>{title}</Text>
           {isAutoRolled && (

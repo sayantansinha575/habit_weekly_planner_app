@@ -1,12 +1,34 @@
-import { prisma } from './index';
+import { prisma } from './prisma';
 
-export const createTask = async (userId: string, title: string, scheduledDate: Date) => {
+export const createTask = async (userId: string, title: string, scheduledDate: Date, scheduledTime?: string, isNotificationEnabled?: boolean) => {
   return prisma.task.create({
     data: {
       userId,
       title,
       scheduledDate,
+      scheduledTime,
+      isNotificationEnabled
     },
+  });
+};
+
+export const getTasks = async (userId: string, date?: Date) => {
+  const whereClause: any = { userId };
+  if (date) {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    whereClause.scheduledDate = {
+      gte: startOfDay,
+      lte: endOfDay
+    };
+  }
+  
+  return prisma.task.findMany({
+    where: whereClause,
+    orderBy: { createdAt: 'asc' }
   });
 };
 
