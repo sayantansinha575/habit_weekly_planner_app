@@ -24,16 +24,28 @@ const getBackendUrl = () => {
 const BASE_URL = getBackendUrl();
 
 export const api = {
-    getTasks: async (userId: string, date?: string) => {
+    getTasks: async (userId: string) => {
         const url = new URL(`${BASE_URL}/tasks`);
         url.searchParams.append('userId', userId);
-        if (date) {
-            url.searchParams.append('date', date);
-        }
+        // if (date) {
+        //     url.searchParams.append('date', date);
+        // }
         
         const response = await fetch(url.toString());
         if (!response.ok) {
             throw new Error('Failed to fetch tasks');
+        }
+        return response.json();
+    },
+
+        getTasksonCurrentDate: async (userId: string, date: string) => {
+        const url = new URL(`${BASE_URL}/tasks`);
+        url.searchParams.append('userId', userId);
+        url.searchParams.append('date', date);
+        
+        const response = await fetch(url.toString());
+        if (!response.ok) {
+            throw new Error('Failed to fetch current Date tasks');
         }
         return response.json();
     },
@@ -64,6 +76,55 @@ export const api = {
         });
         if (!response.ok) {
             throw new Error('Failed to complete task');
+        }
+        return response.json();
+    },
+
+    updateTask: async (taskId: string, title: string, scheduledDate: string, scheduledTime?: string, isNotificationEnabled: boolean = true) => {
+        const response = await fetch(`${BASE_URL}/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title,
+                scheduledDate,
+                scheduledTime,
+                isNotificationEnabled,
+            }),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to update task');
+        }
+        return response.json();
+    },
+
+    getUserStats: async (userId: string) => {
+        const response = await fetch(`${BASE_URL}/users/${userId}/stats`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch user stats');
+        }
+        return response.json();
+    },
+
+    getTemplates: async () => {
+        const response = await fetch(`${BASE_URL}/templates`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch templates');
+        }
+        return response.json();
+    },
+
+    applyTemplate: async (userId: string, templateId: string) => {
+        const response = await fetch(`${BASE_URL}/templates/${templateId}/apply`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId }),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to apply template');
         }
         return response.json();
     }

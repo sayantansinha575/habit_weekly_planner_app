@@ -1,19 +1,65 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { CheckCircle2, Circle, Flame } from 'lucide-react-native';
-import { Colors } from '../theme/colors';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { CheckCircle2, Circle, Flame } from "lucide-react-native";
+import { Colors } from "../theme/colors";
 
 export interface TaskItemProps {
   title: string;
   isCompleted: boolean;
+  scheduledDate?: string | Date;
+  scheduledTime?: string;
   isAutoRolled?: boolean;
   onToggle?: () => void;
   onEdit?: () => void;
 }
 
-const TaskItem = ({ title, isCompleted, isAutoRolled, onToggle, onEdit }: TaskItemProps) => {
+const TaskItem = ({
+  title,
+  isCompleted,
+  scheduledDate,
+  scheduledTime,
+  isAutoRolled,
+  onToggle,
+  onEdit,
+}: TaskItemProps) => {
+  const formatTaskDate = () => {
+    if (!scheduledDate) return "";
+    const date = new Date(scheduledDate);
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const month = months[date.getMonth()];
+    const day = date.getDate();
+
+    let timeDisplay = "";
+    if (scheduledTime) {
+      const [hours, minutes] = scheduledTime.split(":").map(Number);
+      const ampm = hours >= 12 ? "PM" : "AM";
+      const hours12 = hours % 12 || 12;
+      timeDisplay = `, ${hours12}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+    }
+
+    return `${month} ${day}${timeDisplay}`;
+  };
+
+  const displayText = formatTaskDate();
   return (
-    <TouchableOpacity style={styles.container} onPress={onEdit} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onEdit}
+      activeOpacity={0.7}
+    >
       <View style={styles.leftSection}>
         <TouchableOpacity onPress={onToggle}>
           {isCompleted ? (
@@ -23,12 +69,19 @@ const TaskItem = ({ title, isCompleted, isAutoRolled, onToggle, onEdit }: TaskIt
           )}
         </TouchableOpacity>
         <View style={styles.textContainer}>
-          <Text style={[styles.title, isCompleted && styles.completedText]}>{title}</Text>
+          <Text style={[styles.title, isCompleted && styles.completedText]}>
+            {title}
+          </Text>
           {isAutoRolled && (
             <View style={styles.rolledBadge}>
-              <Text style={styles.rolledText}>Auto-rolled</Text>
+              <Text style={styles.rolledTextAutorolled}>Auto-rolled</Text>
             </View>
           )}
+          {displayText ? (
+            <View style={styles.rolledBadge}>
+              <Text style={styles.rolledText}>{displayText}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
       {isCompleted && <Flame color={Colors.accent} size={20} />}
@@ -38,9 +91,9 @@ const TaskItem = ({ title, isCompleted, isAutoRolled, onToggle, onEdit }: TaskIt
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: Colors.card,
     padding: 16,
     borderRadius: 12,
@@ -49,8 +102,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   textContainer: {
@@ -59,24 +112,29 @@ const styles = StyleSheet.create({
   title: {
     color: Colors.text,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   completedText: {
-    textDecorationLine: 'line-through',
+    textDecorationLine: "line-through",
     color: Colors.textMuted,
   },
   rolledBadge: {
-    backgroundColor: '#333',
+    backgroundColor: "#333",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     marginTop: 4,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   rolledText: {
     color: Colors.secondary,
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: "bold",
+  },
+  rolledTextAutorolled: {
+    color: Colors.accent,
+    fontSize: 10,
+    fontWeight: "bold",
   },
 });
 

@@ -12,6 +12,18 @@ export const createTask = async (userId: string, title: string, scheduledDate: D
   });
 };
 
+export const updateTask = async (taskId: string, title: string, scheduledDate: Date, scheduledTime?: string, isNotificationEnabled?: boolean) => {
+  return prisma.task.update({
+    where: { id: taskId },
+    data: {
+      title,
+      scheduledDate,
+      scheduledTime,
+      isNotificationEnabled
+    },
+  });
+};
+
 export const getTasks = async (userId: string, date?: Date) => {
   const whereClause: any = { userId };
   if (date) {
@@ -33,35 +45,104 @@ export const getTasks = async (userId: string, date?: Date) => {
 };
 
 export const completeTask = async (taskId: string) => {
+  const currentTask = await prisma.task.findUnique({ where: { id: taskId } });
+  if (!currentTask) throw new Error('Task not found');
+
   const task = await prisma.task.update({
     where: { id: taskId },
-    data: { isCompleted: true },
+    data: { isCompleted: !currentTask.isCompleted },
   });
 
-  // Update streak logic
-  const userId = task.userId;
+  // Only update streak if the task was JUST completed
+  if (task.isCompleted) {
+    const userId = task.userId;
   const user = await prisma.user.findUnique({ where: { id: userId } });
   
   if (user) {
+    const now = new Date();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     const lastActive = new Date(user.lastActiveAt);
     lastActive.setHours(0, 0, 0, 0);
 
-    if (today.getTime() > lastActive.getTime()) {
-      // It's a new day, increment streak
+    const diffTime = today.getTime() - lastActive.getTime();
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+    if (diffDays === 1) {
+      // Incremental streak (yesterday was last active)
       await prisma.user.update({
         where: { id: userId },
         data: {
           dailyStreak: { increment: 1 },
-          lastActiveAt: new Date(),
+          lastActiveAt: now,
         },
       });
+    } else if (diffDays > 1) {
+      // Reset streak (missed days)
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          dailyStreak: 1,
+          lastActiveAt: now,
+        },
+      });
+    } else if (user.dailyStreak === 0) {
+        // First ever task or streak was 0
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            dailyStreak: 1,
+            lastActiveAt: now,
+          },
+        });
+    }
+    // If diffDays === 0, they already completed something today, no streak change
     }
   }
 
   return task;
+};
+
+export const getUserStats = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      tasks: true
+    }
+  });
+
+  if (!user) throw new Error('User not found');
+
+  const totalTasks = user.tasks.length;
+  const completedTasks = user.tasks.filter(t => t.isCompleted).length;
+  const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+  // Best day logic (simple version)
+  const dayCounts: { [key: number]: number } = {};
+  user.tasks.filter(t => t.isCompleted).forEach(t => {
+    const day = new Date(t.scheduledDate).getDay();
+    dayCounts[day] = (dayCounts[day] || 0) + 1;
+  });
+
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  let bestDayIndex = 0;
+  let maxCount = -1;
+  for (let i = 0; i < 7; i++) {
+    if ((dayCounts[i] || 0) > maxCount) {
+      maxCount = dayCounts[i] || 0;
+      bestDayIndex = i;
+    }
+  }
+
+  return {
+    dailyStreak: user.dailyStreak,
+    weeklyStreak: user.weeklyStreak,
+    completionRate: Math.round(completionRate),
+    bestDay: days[bestDayIndex],
+    totalTasks,
+    completedTasks
+  };
 };
 
 export const rolloverTasks = async () => {
@@ -88,4 +169,31 @@ export const rolloverTasks = async () => {
       },
     });
   }
+};
+
+export const getTemplates = async () => {
+  return prisma.template.findMany();
+};
+
+export const applyTemplate = async (userId: string, templateId: string) => {
+  const template = await prisma.template.findUnique({
+    where: { id: templateId }
+  });
+
+  if (!template) throw new Error('Template not found');
+
+  const today = new Date();
+  const tasksToCreate = (template.tasks as any[]).map(t => ({
+    userId,
+    title: t.title,
+    scheduledDate: today,
+    scheduledTime: t.scheduledTime,
+    isCompleted: false,
+    isNotificationEnabled: true,
+  }));
+
+  // Create tasks for the user
+  return prisma.task.createMany({
+    data: tasksToCreate
+  });
 };

@@ -1,70 +1,126 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { Colors } from '@/src/theme/colors';
-import TaskItem from '@/src/components/TaskItem';
-import GoalModal from '@/src/components/GoalModal';
-import { storage } from '@/src/utils/storage';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import { Colors } from "@/src/theme/colors";
+import TaskItem from "@/src/components/TaskItem";
+import GoalModal from "@/src/components/GoalModal";
+import { storage } from "@/src/utils/storage";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function PlannerScreen() {
   /* 
     TODO: Integrate with real Auth Context. 
     Using a fixed ID for development to ensure persistence works across reloads.
   */
-  const TEST_USER_ID = 'user-123'; 
+  const TEST_USER_ID = "user-123";
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [hasLoadedTasksOnce, setHasLoadedTasksOnce] = useState(false);
+  const [isFetchingTasks, setIsFetchingTasks] = useState(false);
 
-  React.useEffect(() => {
-    loadTasks();
-  }, []);
+  const loadTasks = React.useCallback(async () => {
+    if (isFetchingTasks) return;
+    try {
+      if (!hasLoadedTasksOnce) setLoading(true);
+      setIsFetchingTasks(true);
 
-  const loadTasks = async () => {
-    setLoading(true);
-    const date = new Date(); // Defaults to today
-    const data = await storage.fetchTasks(TEST_USER_ID, date);
-    setTasks(data);
-    setLoading(false);
-  };
+      const data = await storage.fetchTasks(TEST_USER_ID);
+      setTasks(data);
+      setHasLoadedTasksOnce(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+      setIsFetchingTasks(false);
+    }
+  }, [hasLoadedTasksOnce, isFetchingTasks]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+
+      const run = async () => {
+        if (!isActive) return;
+        await loadTasks();
+      };
+
+      run();
+
+      return () => {
+        isActive = false;
+      };
+    }, [loadTasks]),
+  );
 
   const handleToggleTask = async (id: string) => {
-    // Optimistic Update
-    const oldTasks = [...tasks];
-    setTasks(tasks.map(t => t.id === id ? { ...t, isCompleted: !t.isCompleted } : t));
-    
+    let previousTasks: any[] = [];
+
+    setTasks((prev) => {
+      previousTasks = prev;
+      return prev.map((t) =>
+        t.id === id ? { ...t, isCompleted: !t.isCompleted } : t,
+      );
+    });
+
     try {
-        await storage.toggleTask(id);
+      await storage.toggleTask(id);
     } catch (e) {
-        // Revert on failure
-        setTasks(oldTasks);
-        alert('Failed to update task');
+      setTasks(previousTasks);
     }
   };
 
   const handleSaveGoal = async (goalData: any) => {
     try {
-        if (selectedTask) {
-            // Edit not fully implemented in storage.ts yet, just local state update for now or add updateTask to storage
-             setTasks(tasks.map(t => t.id === goalData.id ? { ...t, ...goalData } : t));
-        } else {
-            // Add New
-            // Ensure we use the date selected in the modal
-            const dateToSave = goalData.scheduledDate instanceof Date ? goalData.scheduledDate : new Date(goalData.scheduledDate);
-            const newTask = await storage.addTask(
-                TEST_USER_ID, 
-                goalData.title, 
-                dateToSave, 
-                goalData.scheduledTime,
-                goalData.useNotification
-            );
-            setTasks([...tasks, newTask]);
-        }
-        setModalVisible(false);
+      if (selectedTask) {
+        // Editing existing task
+        const dateToSave =
+          goalData.scheduledDate instanceof Date
+            ? goalData.scheduledDate
+            : new Date(goalData.scheduledDate);
+
+        const updatedTask = await storage.updateTask(
+          goalData.id,
+          goalData.title,
+          dateToSave,
+          goalData.scheduledTime,
+          goalData.useNotification,
+        );
+
+        setTasks((prev) =>
+          prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)),
+        );
+      } else {
+        // Adding new task
+        const dateToSave =
+          goalData.scheduledDate instanceof Date
+            ? goalData.scheduledDate
+            : new Date(goalData.scheduledDate);
+
+        const newTask = await storage.addTask(
+          TEST_USER_ID,
+          goalData.title,
+          dateToSave,
+          goalData.scheduledTime,
+          goalData.useNotification,
+        );
+
+        setTasks((prev) => [...prev, newTask]);
+      }
+
+      setModalVisible(false);
     } catch (e) {
-        alert('Failed to save task');
+      console.error(e);
     }
   };
 
@@ -97,13 +153,19 @@ export default function PlannerScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>
-              {tasks.filter(t => t.isCompleted).length}/{tasks.length}
+              {tasks.filter((t) => t.isCompleted).length}/{tasks.length}
             </Text>
             <Text style={styles.statLabel}>Completed</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>
-              {tasks.length > 0 ? Math.round((tasks.filter(t => t.isCompleted).length / tasks.length) * 100) : 0}%
+              {tasks.length > 0
+                ? Math.round(
+                    (tasks.filter((t) => t.isCompleted).length / tasks.length) *
+                      100,
+                  )
+                : 0}
+              %
             </Text>
             <Text style={styles.statLabel}>Efficiency</Text>
           </View>
@@ -114,16 +176,33 @@ export default function PlannerScreen() {
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Main Goals</Text>
-        {tasks.map((task) => (
-          <TaskItem
-            key={task.id}
-            title={task.title}
-            isCompleted={task.isCompleted}
-            isAutoRolled={task.isAutoRolled}
-            onToggle={() => handleToggleTask(task.id)}
-            onEdit={() => openEditModal(task)}
-          />
-        ))}
+
+        {loading ? (
+          <View
+            style={[
+              styles.loadingContent,
+              { justifyContent: "center", alignItems: "center" },
+            ]}
+          >
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={{ color: Colors.textMuted, marginTop: 12 }}>
+              Loading data...
+            </Text>
+          </View>
+        ) : (
+          tasks.map((task) => (
+            <TaskItem
+              key={task.id}
+              title={task.title}
+              isCompleted={task.isCompleted}
+              scheduledDate={task.scheduledDate}
+              scheduledTime={task.scheduledTime}
+              isAutoRolled={task.isAutoRolled}
+              onToggle={() => handleToggleTask(task.id)}
+              onEdit={() => openEditModal(task)}
+            />
+          ))
+        )}
       </ScrollView>
 
       <GoalModal
@@ -142,9 +221,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   calendarHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
@@ -152,12 +231,12 @@ const styles = StyleSheet.create({
   },
   dateInfo: {
     marginTop: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   dayText: {
     color: Colors.text,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   dateText: {
     color: Colors.textMuted,
@@ -167,20 +246,20 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     backgroundColor: Colors.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
   },
   statItem: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   statValue: {
     color: Colors.primary,
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   statLabel: {
     color: Colors.textMuted,
@@ -190,7 +269,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: Colors.text,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 16,
     marginTop: 16,
   },
@@ -200,12 +279,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderStyle: 'dashed',
-    alignItems: 'center',
+    borderStyle: "dashed",
+    alignItems: "center",
   },
   addGoalText: {
     color: Colors.textMuted,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
+  },
+  loadingContent: {
+    padding: 40,
+    alignItems: "center",
   },
 });

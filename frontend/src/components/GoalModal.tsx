@@ -60,17 +60,28 @@ useEffect(() => {
   if (initialData) {
     setGoalName(initialData.title ?? '');
 
-    if (initialData.date) {
-      const newDate = new Date(initialData.date);
-      setSelectedDate(prev =>
-        prev?.getTime() === newDate.getTime() ? prev : newDate
-      );
+    // Handle scheduledDate and scheduledTime from database
+    if (initialData.scheduledDate) {
+      const date = new Date(initialData.scheduledDate);
+      
+      // If there's a scheduledTime, parse and set it (format: "HH:mm")
+      if (initialData.scheduledTime) {
+        const [hours, minutes] = initialData.scheduledTime.split(':').map(Number);
+        date.setHours(hours, minutes, 0, 0);
+      }
+      
+      setSelectedDate(date);
+    }
+
+    // Set notification preference from task
+    if (initialData.isNotificationEnabled !== undefined) {
+      setUseNotification(initialData.isNotificationEnabled);
     }
   } else {
+    // Reset for new task
     setGoalName('');
-    setSelectedDate(prev =>
-      prev ? prev : new Date()
-    );
+    setSelectedDate(new Date());
+    setUseNotification(true);
   }
 }, [initialData, isVisible]);
 
