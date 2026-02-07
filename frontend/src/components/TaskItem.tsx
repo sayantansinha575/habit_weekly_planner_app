@@ -11,6 +11,9 @@ export interface TaskItemProps {
   isAutoRolled?: boolean;
   onToggle?: () => void;
   onEdit?: () => void;
+  isSelectionMode?: boolean;
+  isSelected?: boolean;
+  onSelect?: () => void;
 }
 
 const TaskItem = ({
@@ -21,6 +24,9 @@ const TaskItem = ({
   isAutoRolled,
   onToggle,
   onEdit,
+  isSelectionMode,
+  isSelected,
+  onSelect,
 }: TaskItemProps) => {
   const formatTaskDate = () => {
     if (!scheduledDate) return "";
@@ -61,13 +67,26 @@ const TaskItem = ({
       activeOpacity={0.7}
     >
       <View style={styles.leftSection}>
-        <TouchableOpacity onPress={onToggle}>
-          {isCompleted ? (
-            <CheckCircle2 color={Colors.success} size={24} />
-          ) : (
-            <Circle color={Colors.textMuted} size={24} />
-          )}
-        </TouchableOpacity>
+        {isSelectionMode ? (
+          <TouchableOpacity
+            onPress={onSelect}
+            style={styles.selectionIndicator}
+          >
+            {isSelected ? (
+              <CheckCircle2 color={Colors.primary} size={24} />
+            ) : (
+              <Circle color={Colors.border} size={24} />
+            )}
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={onToggle}>
+            {isCompleted ? (
+              <CheckCircle2 color={Colors.success} size={24} />
+            ) : (
+              <Circle color={Colors.textMuted} size={24} />
+            )}
+          </TouchableOpacity>
+        )}
         <View style={styles.textContainer}>
           <Text style={[styles.title, isCompleted && styles.completedText]}>
             {title}
@@ -106,6 +125,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
+  selectionIndicator: {
+    marginRight: 4,
+  },
   textContainer: {
     marginLeft: 12,
   },
@@ -119,15 +141,15 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   rolledBadge: {
-    backgroundColor: "#333",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
     marginTop: 4,
     alignSelf: "flex-start",
   },
   rolledText: {
-    color: Colors.secondary,
+    color: Colors.primary,
     fontSize: 10,
     fontWeight: "bold",
   },

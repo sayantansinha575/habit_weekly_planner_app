@@ -27,7 +27,7 @@ export const storage = {
 
     fetchTasksonCurrentDate: async (userId: string, date: Date) => {
     try {
-      console.log('Fetching tasks from backend...');
+      console.log('Fetching Current date tasks from backend...');
       // Convert date to YYYY-MM-DD for API
       const dateStr = date.toISOString();
       const remoteTasks = await api.getTasksonCurrentDate(userId, dateStr);
@@ -140,6 +140,23 @@ export const storage = {
     } catch (e) {
         console.error('Failed to apply template', e);
         throw e;
+    }
+  },
+
+  deleteTasks: async (taskIds: string[]) => {
+    try {
+      // 1. API Call
+      await api.deleteTasks(taskIds);
+
+      // 2. Update Local
+      const current = await storage.getLocalTasks();
+      const updated = current.filter((t: any) => !taskIds.includes(t.id));
+      await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(updated));
+      
+      return updated;
+    } catch (e) {
+      console.error('Failed to delete tasks', e);
+      throw e;
     }
   }
 };

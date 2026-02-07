@@ -28,12 +28,15 @@ export default function DashboardScreen() {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const isFetchingRef = React.useRef(false);
 
   const loadData = React.useCallback(async () => {
-    if (isFetching) return;
+    if (isFetchingRef.current) return;
+
+    isFetchingRef.current = true;
+
     try {
       if (!hasLoadedOnce) setLoading(true);
-      setIsFetching(true);
 
       const date = new Date();
 
@@ -49,9 +52,9 @@ export default function DashboardScreen() {
       console.error(e);
     } finally {
       setLoading(false);
-      setIsFetching(false);
+      isFetchingRef.current = false;
     }
-  }, [hasLoadedOnce, isFetching]);
+  }, [hasLoadedOnce]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -108,7 +111,7 @@ export default function DashboardScreen() {
         </View>
 
         <LinearGradient
-          colors={[Colors.primary, "#4B0082"]}
+          colors={[Colors.primary, "#3D3A4A"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.streakCard}
@@ -121,12 +124,10 @@ export default function DashboardScreen() {
             <Flame color={Colors.secondary} size={48} />
           </View>
         </LinearGradient>
-
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Today's Plan</Text>
           <Text style={styles.sectionAction}>View all</Text>
         </View>
-
         {loading ? (
           <View
             style={[
@@ -164,11 +165,14 @@ export default function DashboardScreen() {
         <Card style={styles.insightsPreview}>
           <Text style={styles.insightText}>
             You complete{" "}
-            <Text style={{ color: Colors.secondary }}>
+            <Text style={{ color: Colors.primary, fontWeight: "700" }}>
               {stats.completionRate}%
             </Text>{" "}
             tasks overall. Best day:{" "}
-            <Text style={{ color: Colors.secondary }}>{stats.bestDay}</Text>.
+            <Text style={{ color: Colors.primary, fontWeight: "700" }}>
+              {stats.bestDay}
+            </Text>
+            .
           </Text>
         </Card>
       </ScrollView>
@@ -212,14 +216,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   streakCard: {
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 24,
     marginBottom: 32,
-    elevation: 5,
+    elevation: 8,
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
   },
   streakContent: {
     flexDirection: "row",
@@ -253,8 +257,8 @@ const styles = StyleSheet.create({
   },
   insightsPreview: {
     marginTop: 24,
-    backgroundColor: "rgba(138, 43, 226, 0.1)",
-    borderColor: "rgba(138, 43, 226, 0.3)",
+    backgroundColor: "rgb(237, 232, 234)",
+    borderColor: "rgba(29, 26, 35, 0.1)",
   },
   insightText: {
     color: Colors.text,

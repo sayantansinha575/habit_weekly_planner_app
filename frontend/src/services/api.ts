@@ -127,5 +127,19 @@ export const api = {
             throw new Error('Failed to apply template');
         }
         return response.json();
+    },
+
+    deleteTasks: async (taskIds: string[]) => {
+        const response = await fetch(`${BASE_URL}/tasks`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ taskIds }),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to delete tasks');
+        }
+        return response.json();
     }
 };

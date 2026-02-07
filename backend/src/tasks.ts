@@ -197,3 +197,11 @@ export const applyTemplate = async (userId: string, templateId: string) => {
     data: tasksToCreate
   });
 };
+
+export const deleteTasks = async (taskIds: string[]) => {
+  return prisma.task.deleteMany({
+    where: {
+      id: { in: taskIds },
+    },
+  });
+};

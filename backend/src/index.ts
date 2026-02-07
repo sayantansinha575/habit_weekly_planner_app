@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 
 import { register, login } from './auth';
-import { createTask, completeTask, getTasks, updateTask, getUserStats, getTemplates, applyTemplate, rolloverTasks } from './tasks';
+import { createTask, completeTask, getTasks, updateTask, getUserStats, getTemplates, applyTemplate, rolloverTasks, deleteTasks } from './tasks';
 import { prisma } from './prisma';
 import './reminders';
 
@@ -78,6 +78,20 @@ app.put('/tasks/:id', async (req, res) => {
 app.post('/tasks/:id/complete', async (req, res) => {
   const task = await completeTask(req.params.id);
   res.json(task);
+});
+
+app.delete('/tasks', async (req, res) => {
+  try {
+    const { taskIds } = req.body;
+    if (!taskIds || !Array.isArray(taskIds)) {
+      res.status(400).json({ error: 'taskIds array is required' });
+      return;
+    }
+    const result = await deleteTasks(taskIds);
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.get('/users/:id/stats', async (req, res) => {

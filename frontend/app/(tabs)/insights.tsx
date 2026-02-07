@@ -199,8 +199,8 @@ const styles = StyleSheet.create({
   },
   mainInsight: {
     marginTop: 20,
-    backgroundColor: "rgba(255, 69, 0, 0.05)",
-    borderColor: "rgba(255, 69, 0, 0.2)",
+    backgroundColor: "rgb(237, 232, 234)",
+    borderColor: "rgba(29, 26, 35, 0.1)",
   },
   insightHeader: {
     flexDirection: "row",
@@ -255,10 +255,16 @@ const styles = StyleSheet.create({
   },
   quoteCard: {
     marginTop: 40,
-    padding: 20,
+    padding: 24,
+    borderRadius: 16,
     borderLeftWidth: 4,
     borderLeftColor: Colors.primary,
-    backgroundColor: "rgba(138, 43, 226, 0.05)",
+    backgroundColor: "#FFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
   },
   quoteText: {
     color: Colors.textMuted,

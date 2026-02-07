@@ -8,12 +8,20 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import {
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+  Trash2,
+  CheckCircle,
+  XCircle,
+} from "lucide-react-native";
 import { Colors } from "@/src/theme/colors";
 import TaskItem from "@/src/components/TaskItem";
 import GoalModal from "@/src/components/GoalModal";
 import { storage } from "@/src/utils/storage";
 import { useFocusEffect } from "@react-navigation/native";
+import { Alert, TouchableWithoutFeedback, Modal } from "react-native";
 
 export default function PlannerScreen() {
   /* 
@@ -28,12 +36,20 @@ export default function PlannerScreen() {
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [hasLoadedTasksOnce, setHasLoadedTasksOnce] = useState(false);
   const [isFetchingTasks, setIsFetchingTasks] = useState(false);
+  const isFetchingTasksRef = React.useRef(false);
 
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const loadTasks = React.useCallback(async () => {
-    if (isFetchingTasks) return;
+    if (isFetchingTasksRef.current) return;
+
+    isFetchingTasksRef.current = true;
+
     try {
       if (!hasLoadedTasksOnce) setLoading(true);
-      setIsFetchingTasks(true);
 
       const data = await storage.fetchTasks(TEST_USER_ID);
       setTasks(data);
@@ -41,11 +57,12 @@ export default function PlannerScreen() {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
-      setIsFetchingTasks(false);
+      if (!hasLoadedTasksOnce) {
+        setLoading(false);
+      }
+      isFetchingTasksRef.current = false;
     }
-  }, [hasLoadedTasksOnce, isFetchingTasks]);
-
+  }, [hasLoadedTasksOnce]);
   useFocusEffect(
     React.useCallback(() => {
       let isActive = true;
@@ -134,6 +151,53 @@ export default function PlannerScreen() {
     setModalVisible(true);
   };
 
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedTaskIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedTaskIds(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTaskIds.size === tasks.length) {
+      setSelectedTaskIds(new Set());
+    } else {
+      setSelectedTaskIds(new Set(tasks.map((t) => t.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedTaskIds.size === 0) return;
+
+    Alert.alert(
+      "Confirm Deletion",
+      `Are you sure you want to delete ${selectedTaskIds.size} goal(s)?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const idsToDelete = Array.from(selectedTaskIds);
+              await storage.deleteTasks(idsToDelete);
+              setTasks((prev) =>
+                prev.filter((t) => !selectedTaskIds.has(t.id)),
+              );
+              setSelectedTaskIds(new Set());
+              setIsEditMode(false);
+            } catch (e) {
+              Alert.alert("Error", "Failed to delete goals.");
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.calendarHeader}>
@@ -175,7 +239,48 @@ export default function PlannerScreen() {
           <Text style={styles.addGoalText}>+ Add Daily Goal</Text>
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Main Goals</Text>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Main Goals</Text>
+            {!isEditMode && (
+              <TouchableOpacity
+                onPress={() => setIsMenuOpen(true)}
+                style={styles.menuBtn}
+              >
+                <MoreVertical
+                  style={styles.menuBtnEditbutton}
+                  color={Colors.textMuted}
+                  size={20}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+          {isEditMode && (
+            <View style={styles.editActions}>
+              <TouchableOpacity
+                onPress={handleSelectAll}
+                style={styles.actionBtn}
+              >
+                <Text style={styles.actionBtnText}>
+                  {selectedTaskIds.size === tasks.length
+                    ? "Deselect All"
+                    : "Select All"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsEditMode(false);
+                  setSelectedTaskIds(new Set());
+                }}
+                style={[styles.actionBtn, { marginLeft: 16 }]}
+              >
+                <Text style={[styles.actionBtnText, { color: "#FF4444" }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
 
         {loading ? (
           <View
@@ -199,11 +304,49 @@ export default function PlannerScreen() {
               scheduledTime={task.scheduledTime}
               isAutoRolled={task.isAutoRolled}
               onToggle={() => handleToggleTask(task.id)}
-              onEdit={() => openEditModal(task)}
+              onEdit={isEditMode ? undefined : () => openEditModal(task)}
+              isSelectionMode={isEditMode}
+              isSelected={selectedTaskIds.has(task.id)}
+              onSelect={() => toggleSelection(task.id)}
             />
           ))
         )}
       </ScrollView>
+
+      {isEditMode && selectedTaskIds.size > 0 && (
+        <TouchableOpacity
+          style={styles.deleteFab}
+          onPress={handleDeleteSelected}
+        >
+          <Trash2 color="#FFF" size={24} />
+          <Text style={styles.deleteFabText}>
+            Delete ({selectedTaskIds.size})
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      <Modal
+        visible={isMenuOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsMenuOpen(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setIsMenuOpen(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.dropdownMenu}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setIsEditMode(true);
+                  setIsMenuOpen(false);
+                }}
+              >
+                <Text style={styles.menuItemText}>Edit Goals</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       <GoalModal
         isVisible={isModalVisible}
@@ -226,8 +369,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 15,
+    backgroundColor: Colors.card,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   dateInfo: {
     marginTop: 16,
@@ -249,9 +393,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     backgroundColor: Colors.card,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
     marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   statItem: {
     alignItems: "center",
@@ -270,17 +419,91 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 18,
     fontWeight: "700",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
-    marginTop: 16,
+    marginTop: 24,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  menuBtn: {
+    marginLeft: 8,
+    padding: 4,
+  },
+  editActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  actionBtn: {
+    paddingVertical: 4,
+  },
+  actionBtnText: {
+    color: Colors.primary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  deleteFab: {
+    position: "absolute",
+    bottom: 30,
+    alignSelf: "center",
+    backgroundColor: "#FF4444",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 30,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  deleteFabText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.1)",
+  },
+  dropdownMenu: {
+    position: "absolute",
+    top: 360, // Rough position, ideally we'd use layout measurements
+    right: 20,
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: 8,
+    minWidth: 150,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+  },
+  menuItem: {
+    padding: 12,
+  },
+  menuItemText: {
+    color: Colors.text,
+    fontSize: 14,
+    fontWeight: "500",
   },
   addGoalBtn: {
     marginTop: 16,
     padding: 16,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: "rgba(29, 26, 35, 0.2)",
     borderStyle: "dashed",
     alignItems: "center",
+    backgroundColor: "rgba(29, 26, 35, 0.05)",
   },
   addGoalText: {
     color: Colors.textMuted,
@@ -290,5 +513,10 @@ const styles = StyleSheet.create({
   loadingContent: {
     padding: 40,
     alignItems: "center",
+  },
+
+  menuBtnEditbutton: {
+    marginLeft: 8,
+    padding: 4,
   },
 });
