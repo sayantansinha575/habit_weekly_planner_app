@@ -189,5 +189,6 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontSize: 12,
     marginTop: 2,
+    fontWeight: "500",
   },
 });

@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
   menuItemText: {
     color: Colors.text,
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   addGoalBtn: {
     marginTop: 16,
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
   },
 
   menuBtnEditbutton: {
-    marginLeft: 8,
+    marginLeft: 260,
     padding: 4,
   },
 });

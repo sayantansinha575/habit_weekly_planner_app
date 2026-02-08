@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   dayDateText: {
     color: Colors.text,
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
     marginTop: 4,
   },
   dayTextActive: {
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 18,
     paddingVertical: 10,
-    fontStyle: "italic",
+    fontWeight: "500",
   },
   optionRow: {
     flexDirection: "row",
@@ -398,6 +398,7 @@ const styles = StyleSheet.create({
   optionTitle: {
     color: Colors.text,
     fontSize: 16,
+    fontWeight: "600",
   },
   optionSubTitle: {
     color: Colors.textMuted,

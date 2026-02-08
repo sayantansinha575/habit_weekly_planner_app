@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   title: {
     color: Colors.text,
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   completedText: {
     textDecorationLine: "line-through",

@@ -252,6 +252,7 @@ const styles = StyleSheet.create({
   barLabel: {
     color: Colors.textMuted,
     fontSize: 12,
+    fontWeight: "500",
   },
   quoteCard: {
     marginTop: 40,

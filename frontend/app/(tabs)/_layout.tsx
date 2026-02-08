@@ -28,6 +28,10 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
+        tabBarLabelStyle: {
+          fontWeight: "600",
+          fontSize: 11,
+        },
       }}
     >
       <Tabs.Screen

@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: 8,
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   previewImage: {
     width: "100%",

@@ -16,6 +16,7 @@ import TaskItem from "@/src/components/TaskItem";
 import GoalModal from "@/src/components/GoalModal";
 import { storage } from "@/src/utils/storage";
 import { useFocusEffect } from "@react-navigation/native";
+import { Fonts } from "@/constants/theme";
 
 export default function DashboardScreen() {
   const TEST_USER_ID = "user-123";
@@ -51,7 +52,9 @@ export default function DashboardScreen() {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (!hasLoadedOnce) {
+        setLoading(false);
+      }
       isFetchingRef.current = false;
     }
   }, [hasLoadedOnce]);
@@ -254,6 +257,7 @@ const styles = StyleSheet.create({
   sectionAction: {
     color: Colors.primary,
     fontSize: 14,
+    fontWeight: "600",
   },
   insightsPreview: {
     marginTop: 24,
@@ -293,6 +297,8 @@ const styles = StyleSheet.create({
   emptyText: {
     color: Colors.textMuted,
     fontSize: 14,
-    fontStyle: "italic",
+    fontStyle: "normal",
+    fontWeight: "bold",
+    fontFamily: "Inter, sans-serif",
   },
 });
