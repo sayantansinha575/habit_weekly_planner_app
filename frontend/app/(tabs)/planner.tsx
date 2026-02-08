@@ -16,7 +16,7 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react-native";
-import { Colors } from "@/src/theme/colors";
+import { Colors, Fonts } from "@/src/theme/colors";
 import TaskItem from "@/src/components/TaskItem";
 import GoalModal from "@/src/components/GoalModal";
 import { storage } from "@/src/utils/storage";
@@ -381,10 +381,12 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 18,
     fontWeight: "bold",
+    fontFamily: Fonts.bold,
   },
   dateText: {
     color: Colors.textMuted,
     fontSize: 14,
+    fontFamily: Fonts.regular,
   },
   container: {
     padding: 20,
@@ -409,16 +411,19 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 20,
     fontWeight: "bold",
+    fontFamily: Fonts.bold,
   },
   statLabel: {
     color: Colors.textMuted,
     fontSize: 12,
     marginTop: 4,
+    fontFamily: Fonts.regular,
   },
   sectionTitle: {
     color: Colors.text,
     fontSize: 18,
     fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -446,6 +451,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
   deleteFab: {
     position: "absolute",
@@ -467,6 +473,7 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 16,
     fontWeight: "bold",
+    fontFamily: Fonts.bold,
     marginLeft: 8,
   },
   modalOverlay: {
@@ -494,6 +501,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
   addGoalBtn: {
     marginTop: 16,
@@ -509,6 +517,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
   loadingContent: {
     padding: 40,

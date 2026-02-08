@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Camera, Search, Utensils, Info, ImagePlus } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
-import { Colors } from "@/src/theme/colors";
+import { Colors, Fonts } from "@/src/theme/colors";
 import Card from "@/src/components/Card";
 
 export default function CalorieScreen() {
@@ -294,11 +294,13 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 28,
     fontWeight: "bold",
+    fontFamily: Fonts.bold,
   },
   subtitle: {
     color: Colors.textMuted,
     fontSize: 14,
     marginTop: 4,
+    fontFamily: Fonts.regular,
   },
   searchContainer: {
     marginBottom: 20,
@@ -318,6 +320,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginLeft: 10,
     fontSize: 16,
+    fontFamily: Fonts.regular,
   },
   actionRow: {
     flexDirection: "row",
@@ -349,6 +352,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
   previewImage: {
     width: "100%",
@@ -363,6 +367,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "600",
     fontSize: 14,
+    fontFamily: Fonts.semiBold,
   },
 
   resultCard: {
@@ -440,6 +445,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 16,
     fontWeight: "bold",
+    fontFamily: Fonts.bold,
   },
   infoNote: {
     flexDirection: "row",

@@ -10,13 +10,12 @@ import {
 } from "react-native";
 import { Flame, Plus } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Colors } from "@/src/theme/colors";
+import { Colors, Fonts } from "@/src/theme/colors";
 import Card from "@/src/components/Card";
 import TaskItem from "@/src/components/TaskItem";
 import GoalModal from "@/src/components/GoalModal";
 import { storage } from "@/src/utils/storage";
 import { useFocusEffect } from "@react-navigation/native";
-import { Fonts } from "@/constants/theme";
 
 export default function DashboardScreen() {
   const TEST_USER_ID = "user-123";
@@ -127,6 +126,19 @@ export default function DashboardScreen() {
             <Flame color={Colors.secondary} size={48} />
           </View>
         </LinearGradient>
+        <Card style={styles.insightsPreview}>
+          <Text style={styles.insightText}>
+            You complete{" "}
+            <Text style={{ color: Colors.primary, fontWeight: "700" }}>
+              {stats.completionRate}%
+            </Text>{" "}
+            tasks overall. Best day:{" "}
+            <Text style={{ color: Colors.primary, fontWeight: "700" }}>
+              {stats.bestDay}
+            </Text>
+            .
+          </Text>
+        </Card>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Today's Plan</Text>
           <Text style={styles.sectionAction}>View all</Text>
@@ -164,20 +176,6 @@ export default function DashboardScreen() {
             )}
           </>
         )}
-
-        <Card style={styles.insightsPreview}>
-          <Text style={styles.insightText}>
-            You complete{" "}
-            <Text style={{ color: Colors.primary, fontWeight: "700" }}>
-              {stats.completionRate}%
-            </Text>{" "}
-            tasks overall. Best day:{" "}
-            <Text style={{ color: Colors.primary, fontWeight: "700" }}>
-              {stats.bestDay}
-            </Text>
-            .
-          </Text>
-        </Card>
       </ScrollView>
 
       <TouchableOpacity
@@ -212,11 +210,13 @@ const styles = StyleSheet.create({
   greeting: {
     color: Colors.textMuted,
     fontSize: 16,
+    fontFamily: Fonts.regular,
   },
   name: {
     color: Colors.text,
     fontSize: 28,
     fontWeight: "bold",
+    fontFamily: Fonts.bold,
   },
   streakCard: {
     borderRadius: 24,
@@ -237,11 +237,13 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
   streakValue: {
     color: "#FFF",
     fontSize: 32,
     fontWeight: "800",
+    fontFamily: Fonts.bold,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -253,14 +255,16 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 18,
     fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
   sectionAction: {
     color: Colors.primary,
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
   insightsPreview: {
-    marginTop: 24,
+    marginTop: 7,
     backgroundColor: "rgb(237, 232, 234)",
     borderColor: "rgba(29, 26, 35, 0.1)",
   },
@@ -269,6 +273,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     textAlign: "center",
+    fontFamily: Fonts.regular,
   },
   fab: {
     position: "absolute",

@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { TrendingUp, Calendar, Clock, Award } from "lucide-react-native";
-import { Colors } from "@/src/theme/colors";
+import { Colors, Fonts } from "@/src/theme/colors";
 import Card from "@/src/components/Card";
 import { storage } from "@/src/utils/storage";
 import { useFocusEffect } from "@react-navigation/native";
@@ -99,11 +99,23 @@ export default function InsightsScreen() {
           </View>
           <Text style={styles.insightDescription}>
             “You have a{" "}
-            <Text style={{ color: Colors.secondary, fontWeight: "bold" }}>
+            <Text
+              style={{
+                color: Colors.secondary,
+                fontWeight: "bold",
+                fontFamily: Fonts.bold,
+              }}
+            >
               {stats.dailyStreak} day
             </Text>{" "}
             streak! Your most productive day is{" "}
-            <Text style={{ color: Colors.secondary, fontWeight: "bold" }}>
+            <Text
+              style={{
+                color: Colors.secondary,
+                fontWeight: "bold",
+                fontFamily: Fonts.bold,
+              }}
+            >
               {stats.bestDay}
             </Text>
             .”
@@ -171,11 +183,13 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 28,
     fontWeight: "bold",
+    fontFamily: Fonts.bold,
   },
   subtitle: {
     color: Colors.textMuted,
     fontSize: 14,
     marginTop: 4,
+    fontFamily: Fonts.regular,
   },
   statsGrid: {
     flexDirection: "row",
@@ -190,16 +204,18 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 20,
     fontWeight: "bold",
+    fontFamily: Fonts.bold,
     marginTop: 12,
   },
   statLabel: {
     color: Colors.textMuted,
     fontSize: 12,
     marginTop: 4,
+    fontFamily: Fonts.regular,
   },
   mainInsight: {
     marginTop: 20,
-    backgroundColor: "rgb(237, 232, 234)",
+    backgroundColor: "#FFF",
     borderColor: "rgba(29, 26, 35, 0.1)",
   },
   insightHeader: {
@@ -211,12 +227,14 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     fontSize: 16,
     fontWeight: "bold",
+    fontFamily: Fonts.bold,
     marginLeft: 10,
   },
   insightDescription: {
     color: Colors.text,
     fontSize: 14,
     lineHeight: 22,
+    fontFamily: Fonts.regular,
   },
   sectionHeader: {
     marginTop: 32,
@@ -226,6 +244,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 18,
     fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
   patternCard: {
     padding: 16,
@@ -239,6 +258,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: Fonts.semiBold,
     marginLeft: 8,
   },
   barContainer: {
@@ -253,6 +273,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontSize: 12,
     fontWeight: "500",
+    fontFamily: Fonts.medium,
   },
   quoteCard: {
     marginTop: 40,
@@ -272,5 +293,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: "italic",
     lineHeight: 20,
+    fontFamily: Fonts.regular,
   },
 });

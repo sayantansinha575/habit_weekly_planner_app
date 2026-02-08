@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { CheckCircle2, Circle, Flame } from "lucide-react-native";
-import { Colors } from "../theme/colors";
+import { Colors, Fonts } from "../theme/colors";
 
 export interface TaskItemProps {
   title: string;
@@ -135,6 +135,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 16,
     fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
   completedText: {
     textDecorationLine: "line-through",
@@ -152,11 +153,13 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 10,
     fontWeight: "bold",
+    fontFamily: Fonts.bold,
   },
   rolledTextAutorolled: {
     color: Colors.accent,
     fontSize: 10,
     fontWeight: "bold",
+    fontFamily: Fonts.bold,
   },
 });
 

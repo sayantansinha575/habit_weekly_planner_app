@@ -15,7 +15,7 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import { X, Calendar as CalendarIcon } from "lucide-react-native";
-import { Colors } from "../theme/colors";
+import { Colors, Fonts } from "../theme/colors";
 
 interface GoalModalProps {
   isVisible: boolean;
@@ -332,6 +332,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 14,
     fontStyle: "italic",
+    fontFamily: Fonts.regular,
   },
   timePickerSection: {
     marginBottom: 20,
@@ -346,6 +347,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 48,
     fontWeight: "300",
+    fontFamily: Fonts.regular, // Light variants usually look good for large numbers
   },
   daySelector: {
     flexDirection: "row",
@@ -367,11 +369,13 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontSize: 10,
     fontWeight: "400",
+    fontFamily: Fonts.regular,
   },
   dayDateText: {
     color: Colors.text,
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: Fonts.semiBold,
     marginTop: 4,
   },
   dayTextActive: {
@@ -388,6 +392,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     paddingVertical: 10,
     fontWeight: "500",
+    fontFamily: Fonts.medium,
   },
   optionRow: {
     flexDirection: "row",
@@ -399,10 +404,12 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 16,
     fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
   optionSubTitle: {
     color: Colors.textMuted,
     fontSize: 12,
+    fontFamily: Fonts.regular,
   },
   footer: {
     flexDirection: "row",
@@ -417,6 +424,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 18,
     fontStyle: "italic",
+    fontFamily: Fonts.regular,
   },
   saveBtn: {
     padding: 12,
@@ -429,6 +437,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontStyle: "italic",
     fontWeight: "600",
+    fontFamily: Fonts.semiBold,
   },
 });
 

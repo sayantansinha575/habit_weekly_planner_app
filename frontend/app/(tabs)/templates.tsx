@@ -15,7 +15,7 @@ import {
   Zap,
   ChevronRight,
 } from "lucide-react-native";
-import { Colors } from "@/src/theme/colors";
+import { Colors, Fonts } from "@/src/theme/colors";
 import Card from "@/src/components/Card";
 import { storage } from "@/src/utils/storage";
 import { Alert } from "react-native";
@@ -151,11 +151,13 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 28,
     fontWeight: "bold",
+    fontFamily: Fonts.bold,
   },
   subtitle: {
     color: Colors.textMuted,
     fontSize: 14,
     marginTop: 4,
+    fontFamily: Fonts.regular,
   },
   templateCard: {
     padding: 12,
@@ -184,11 +186,13 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 16,
     fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
   templateDescription: {
     color: Colors.textMuted,
     fontSize: 12,
     marginTop: 2,
     fontWeight: "500",
+    fontFamily: Fonts.medium,
   },
 });
