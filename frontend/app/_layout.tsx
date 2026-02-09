@@ -15,6 +15,17 @@ import {
   Outfit_600SemiBold,
   Outfit_700Bold,
 } from "@expo-google-fonts/outfit";
+import { notificationUtils } from "@/src/utils/notifications";
+import * as Notifications from "expo-notifications";
+
+// Handle notifications when the app is in foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 import useColorScheme from "@/hooks/use-color-scheme";
 
@@ -38,6 +49,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded || error) {
       SplashScreen.hideAsync();
+      notificationUtils.requestPermissions();
     }
   }, [loaded, error]);
 
