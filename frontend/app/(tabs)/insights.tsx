@@ -10,6 +10,7 @@ import {
 import { TrendingUp, Calendar, Clock, Award } from "lucide-react-native";
 import { Colors, Fonts } from "@/src/theme/colors";
 import Card from "@/src/components/Card";
+import ProgressRing from "@/src/components/ProgressRing";
 import { storage } from "@/src/utils/storage";
 import { useFocusEffect } from "@react-navigation/native";
 
@@ -81,9 +82,12 @@ export default function InsightsScreen() {
 
         <View style={styles.statsGrid}>
           <Card style={styles.statCard}>
-            <TrendingUp color={Colors.primary} size={24} />
-            <Text style={styles.statValue}>{stats.completionRate}%</Text>
-            <Text style={styles.statLabel}>Completion</Text>
+            <ProgressRing
+              progress={stats.completionRate / 100}
+              color={Colors.primary}
+              label="Completion"
+              size={80}
+            />
           </Card>
           <Card style={styles.statCard}>
             <Calendar color={Colors.secondary} size={24} />

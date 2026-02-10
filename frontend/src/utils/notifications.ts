@@ -52,8 +52,8 @@ export const notificationUtils = {
     try {
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {
-          title: "Task Reminder 🎯",
-          body: task.title,
+          title: "Task Reminder 🔥",
+          body: `Here's your plan for today: ${task.title}`,
           data: { taskId: task.id },
           sound: true,
         },

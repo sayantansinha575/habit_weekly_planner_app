@@ -18,6 +18,7 @@ import {
 } from "lucide-react-native";
 import { Colors, Fonts } from "@/src/theme/colors";
 import TaskItem from "@/src/components/TaskItem";
+import ProgressRing from "@/src/components/ProgressRing";
 import GoalModal from "@/src/components/GoalModal";
 import { storage } from "@/src/utils/storage";
 import { useFocusEffect } from "@react-navigation/native";
@@ -215,24 +216,27 @@ export default function PlannerScreen() {
 
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {tasks.filter((t) => t.isCompleted).length}/{tasks.length}
-            </Text>
-            <Text style={styles.statLabel}>Completed</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {tasks.length > 0
-                ? Math.round(
-                    (tasks.filter((t) => t.isCompleted).length / tasks.length) *
-                      100,
-                  )
-                : 0}
-              %
-            </Text>
-            <Text style={styles.statLabel}>Efficiency</Text>
-          </View>
+          <ProgressRing
+            progress={
+              tasks.length > 0
+                ? tasks.filter((t) => t.isCompleted).length / tasks.length
+                : 0
+            }
+            color="#7EB6D2"
+            label="Completed"
+            subLabel={`${tasks.filter((t) => t.isCompleted).length}/${tasks.length} goals`}
+            size={90}
+          />
+          <ProgressRing
+            progress={
+              tasks.length > 0
+                ? tasks.filter((t) => t.isCompleted).length / tasks.length
+                : 0
+            }
+            color="#7DC9A3"
+            label="Efficiency"
+            size={90}
+          />
         </View>
 
         <TouchableOpacity style={styles.addGoalBtn} onPress={openAddModal}>
