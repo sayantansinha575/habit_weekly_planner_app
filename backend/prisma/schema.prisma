@@ -33,6 +33,8 @@ model User {
   dailySteps        DailyStep[]
   notificationPrefs NotificationPreference?
   userAchievements  UserAchievement[]
+  calAiProfile      CalAiProfile?
+  calAiMeals        CalAiMeal[]
 }
 
 model Task {
@@ -124,4 +126,35 @@ model Quote {
   author    String?
   category  String?
   shownDate DateTime? @db.Date
+}
+
+model CalAiProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  goalWeight    Float
+  currentWeight Float
+  height        String
+  dateOfBirth   DateTime
+  gender        String
+  dailyStepGoal Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user  User        @relation(fields: [userId], references: [id])
+  meals CalAiMeal[]
+}
+
+model CalAiMeal {
+  id          String   @id @default(uuid())
+  userId      String
+  profileId   String?
+  calories    Int
+  protein     Float
+  carbs       Float
+  fats        Float
+  description String
+  date        DateTime @default(now())
+
+  user    User          @relation(fields: [userId], references: [id])
+  profile CalAiProfile? @relation(fields: [profileId], references: [id])
 }

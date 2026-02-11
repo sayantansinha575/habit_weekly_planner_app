@@ -11,6 +11,8 @@ interface ProgressRingProps {
   label?: string;
   subLabel?: string;
   centerText?: string;
+  textColor?: string;
+  labelColor?: string;
 }
 
 const ProgressRing = ({
@@ -21,6 +23,8 @@ const ProgressRing = ({
   label,
   subLabel,
   centerText,
+  textColor,
+  labelColor,
 }: ProgressRingProps) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -35,7 +39,7 @@ const ProgressRing = ({
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="rgba(0,0,0,0.05)"
+            stroke="rgba(255,255,255,0.1)"
             strokeWidth={strokeWidth}
             fill="transparent"
           />
@@ -54,12 +58,27 @@ const ProgressRing = ({
           />
         </Svg>
         <View style={[StyleSheet.absoluteFill, styles.centerContent]}>
-          <Text style={styles.centerText}>
+          <Text
+            style={[styles.centerText, textColor ? { color: textColor } : null]}
+          >
             {centerText || `${Math.round(progress * 100)}%`}
           </Text>
         </View>
       </View>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text
+          style={[
+            styles.label,
+            labelColor
+              ? { color: labelColor }
+              : textColor
+                ? { color: textColor }
+                : null,
+          ]}
+        >
+          {label}
+        </Text>
+      )}
       {subLabel && <Text style={styles.subLabel}>{subLabel}</Text>}
     </View>
   );
