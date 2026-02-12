@@ -19,6 +19,8 @@ import {
   updateCalAiProfile,
   getCalAiDashboard,
   analyzeMeal,
+  resetTodayMeals,
+  getCalAiProgress,
 } from "./cal-ai";
 import { prisma } from "./prisma";
 import "./reminders";
@@ -215,6 +217,25 @@ app.post("/api/cal-ai/analyze-meal", async (req, res) => {
     const { userId, description, imageBase64 } = req.body;
     const meal = await analyzeMeal(userId, description, imageBase64);
     res.json(meal);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/cal-ai/reset", async (req, res) => {
+  try {
+    const { userId } = req.body;
+    await resetTodayMeals(userId);
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/api/cal-ai/progress/:userId", async (req, res) => {
+  try {
+    const data = await getCalAiProgress(req.params.userId);
+    res.json(data);
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }

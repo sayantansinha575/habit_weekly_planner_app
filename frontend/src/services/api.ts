@@ -196,4 +196,18 @@ export const api = {
     if (!response.ok) throw new Error("Failed to analyze meal");
     return response.json();
   },
+  resetCalAiDashboard: async (userId: string) => {
+    const response = await fetch(`${BASE_URL}/api/cal-ai/reset`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    if (!response.ok) throw new Error("Failed to reset dashboard");
+    return response.json();
+  },
+  getCalAiProgress: async (userId: string) => {
+    const response = await fetch(`${BASE_URL}/api/cal-ai/progress/${userId}`);
+    if (!response.ok) throw new Error("Failed to fetch progress data");
+    return response.json();
+  },
 };

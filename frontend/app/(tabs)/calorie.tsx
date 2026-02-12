@@ -27,6 +27,7 @@ import {
   Flame,
   Zap,
   Target,
+  Apple,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Fonts } from "@/src/theme/colors";
@@ -36,6 +37,7 @@ import { api } from "@/src/services/api";
 import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
+import CalorieProgress from "@/src/components/CalorieProgress";
 
 const { width } = Dimensions.get("window");
 
@@ -47,6 +49,20 @@ export default function CalorieScreen() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [progressData, setProgressData] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Generate last 7 days
+  const getLast7Days = () => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      days.push(date);
+    }
+    return days;
+  };
+  const weekDays = getLast7Days();
 
   // Form State for Onboarding/Profile
   const [formData, setFormData] = useState({
@@ -134,6 +150,8 @@ export default function CalorieScreen() {
         });
         const dashData = await api.getCalAiDashboard(TEST_USER_ID);
         setDashboardData(dashData);
+        const progData = await api.getCalAiProgress(TEST_USER_ID);
+        setProgressData(progData);
         setCurrentView("dashboard");
       } else {
         setCurrentView("onboarding");
@@ -194,10 +212,38 @@ export default function CalorieScreen() {
     }
   };
 
+  const handleResetTarget = async () => {
+    Alert.alert(
+      "Reset Target",
+      "Are you sure you want to clear today's meals and start a new target?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await api.resetCalAiDashboard(TEST_USER_ID);
+              await init();
+            } catch (e) {
+              Alert.alert("Error", "Failed to reset");
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (loading && !profile && currentView === "dashboard") {
     return (
       <View style={[styles.mainContainer, styles.center]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={Colors.card} />
+        <Text style={{ color: Colors.textMuted, marginTop: 12 }}>
+          Loading data...
+        </Text>
       </View>
     );
   }
@@ -264,96 +310,261 @@ export default function CalorieScreen() {
 
   const renderDashboard = () => (
     <ScrollView
-      style={styles.scrollContainer}
-      contentContainerStyle={styles.dashboardContent}
+      horizontal
+      pagingEnabled
+      showsHorizontalScrollIndicator={false}
+      style={styles.horizontalPager}
     >
-      <View style={styles.dashHeader}>
-        <View>
-          <Text style={styles.dashTitle}>Hello!</Text>
-          <Text style={styles.dashSubtitle}>
-            Here's your summary for today.
-          </Text>
-        </View>
-        <TouchableOpacity onPress={() => setCurrentView("profile")}>
-          <View style={styles.profileBadge}>
-            <UserIcon color={Colors.primary} size={20} />
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {/* Main Calorie Ring */}
-      <View style={styles.mainRingContainer}>
-        <ProgressRing
-          progress={
-            dashboardData
-              ? Math.max(0, 1 - dashboardData.caloriesLeft / 2000)
-              : 0
-          }
-          size={200}
-          strokeWidth={15}
-          color={Colors.secondary}
-          centerText={dashboardData ? `${dashboardData.caloriesLeft}` : "0"}
-          label="Calories Left"
-          textColor="#FFF"
-        />
-      </View>
-
-      {/* Macro Grid */}
-      <View style={styles.macroRow}>
-        <Card style={styles.macroCard}>
-          <Flame color="#FF4D4D" size={20} />
-          <Text style={styles.macroValue}>
-            {dashboardData?.totalProtein || 0}g
-          </Text>
-          <Text style={styles.macroLabel}>Protein</Text>
-        </Card>
-        <Card style={styles.macroCard}>
-          <Zap color="#FFB84D" size={20} />
-          <Text style={styles.macroValue}>
-            {dashboardData?.totalCarbs || 0}g
-          </Text>
-          <Text style={styles.macroLabel}>Carbs</Text>
-        </Card>
-        <Card style={styles.macroCard}>
-          <Utensils color="#4D94FF" size={20} />
-          <Text style={styles.macroValue}>
-            {dashboardData?.totalFats || 0}g
-          </Text>
-          <Text style={styles.macroLabel}>Fats</Text>
-        </Card>
-      </View>
-
-      <TouchableOpacity
-        style={styles.addMealHero}
-        onPress={() => setCurrentView("add-meal")}
+      {/* Page 1: Main Dashboard */}
+      <ScrollView
+        style={[styles.scrollContainer, { width }]}
+        contentContainerStyle={styles.dashboardContent}
       >
-        <LinearGradient
-          colors={[Colors.primary, "#24243e"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientBtn}
-        >
-          <Plus color="#FFF" size={24} />
-          <Text style={styles.addMealText}>Add a Meal</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+        <View style={styles.dashHeader}>
+          <View style={styles.titleRow}>
+            <Apple color="#FFF" fill="#000" size={32} />
+            <Text style={styles.dashTitle}>Calorie AI</Text>
+          </View>
+          <View style={styles.streakBadge}>
+            <Flame color="#FFA500" fill="#FFA500" size={20} />
+            <Text style={styles.streakText}>{dashboardData?.streak || 0}</Text>
+          </View>
+        </View>
 
-      <Text style={styles.sectionTitle}>Recent Meals</Text>
-      {dashboardData?.meals && dashboardData.meals.length > 0 ? (
-        dashboardData.meals.map((meal: any) => (
-          <Card key={meal.id} style={styles.mealCard}>
-            <View style={styles.mealInfo}>
-              <Text style={styles.mealDesc}>{meal.description}</Text>
-              <Text style={styles.mealMacros}>
-                P: {meal.protein}g | C: {meal.carbs}g | F: {meal.fats}g
-              </Text>
+        <View style={styles.calendarContainer}>
+          {weekDays.map((date, index) => {
+            const isSelected =
+              date.toDateString() === selectedDate.toDateString();
+            const dayName = date.toLocaleDateString("en-US", {
+              weekday: "short",
+            });
+            const dayNum = date.getDate().toString().padStart(2, "0");
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={[styles.dayItem, isSelected && styles.selectedDayItem]}
+                onPress={() => setSelectedDate(date)}
+              >
+                <Text
+                  style={[
+                    styles.dayNameText,
+                    isSelected && styles.selectedDayText,
+                  ]}
+                >
+                  {dayName}
+                </Text>
+                <View
+                  style={[
+                    styles.dayCircle,
+                    isSelected
+                      ? styles.selectedDayCircle
+                      : styles.dashedDayCircle,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.dayNumText,
+                      isSelected && styles.selectedDayText,
+                    ]}
+                  >
+                    {dayNum}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Main Calorie Ring */}
+        <View style={styles.mainRingContainer}>
+          {dashboardData && dashboardData.caloriesLeft <= 0 ? (
+            <View style={styles.celebrationContainer}>
+              <LinearGradient
+                colors={["rgba(252, 163, 17, 0.2)", "rgba(255, 69, 0, 0.2)"]}
+                style={styles.celebrationGradient}
+              >
+                <TrendingUp color={Colors.secondary} size={48} />
+                <Text style={styles.celebrationTitle}>Goal Reached! 🥳</Text>
+                <Text style={styles.celebrationText}>
+                  You've completed your daily target. Amazing job!
+                </Text>
+                <TouchableOpacity
+                  style={styles.resetBtn}
+                  onPress={handleResetTarget}
+                >
+                  <Text style={styles.resetBtnText}>Start New Target</Text>
+                </TouchableOpacity>
+              </LinearGradient>
             </View>
-            <Text style={styles.mealCals}>{meal.calories} kcal</Text>
+          ) : (
+            <ProgressRing
+              progress={
+                dashboardData
+                  ? Math.min(
+                      1,
+                      Math.max(
+                        0,
+                        1 -
+                          dashboardData.caloriesLeft /
+                            (dashboardData.dailyTarget || 2000),
+                      ),
+                    )
+                  : 0
+              }
+              size={200}
+              strokeWidth={15}
+              color={Colors.secondary}
+              centerText={
+                dashboardData
+                  ? `${Math.max(0, dashboardData.caloriesLeft)}`
+                  : "0"
+              }
+              label="Calories Left"
+              textColor="#FFF"
+            />
+          )}
+        </View>
+
+        {/* Macro Grid */}
+        <View style={styles.macroRow}>
+          <Card style={styles.macroCard}>
+            <View style={styles.macroCardHeader}>
+              <Text style={styles.macroValue}>
+                {Math.max(
+                  0,
+                  (dashboardData?.proteinTarget || 150) -
+                    (dashboardData?.totalProtein || 0),
+                )}
+                g
+              </Text>
+              <Text style={styles.macroLabel}>Protein left</Text>
+            </View>
+            <ProgressRing
+              progress={
+                dashboardData
+                  ? Math.min(
+                      1,
+                      (dashboardData.totalProtein || 0) /
+                        (dashboardData.proteinTarget || 150),
+                    )
+                  : 0
+              }
+              size={60}
+              strokeWidth={6}
+              color="#FF4D4D"
+            >
+              <Flame color="#FF4D4D" size={20} />
+            </ProgressRing>
           </Card>
-        ))
-      ) : (
-        <Text style={styles.emptyText}>No meals tracked today yet.</Text>
-      )}
+
+          <Card style={styles.macroCard}>
+            <View style={styles.macroCardHeader}>
+              <Text style={styles.macroValue}>
+                {Math.max(
+                  0,
+                  (dashboardData?.carbsTarget || 250) -
+                    (dashboardData?.totalCarbs || 0),
+                )}
+                g
+              </Text>
+              <Text style={styles.macroLabel}>Carbs left</Text>
+            </View>
+            <ProgressRing
+              progress={
+                dashboardData
+                  ? Math.min(
+                      1,
+                      (dashboardData.totalCarbs || 0) /
+                        (dashboardData.carbsTarget || 250),
+                    )
+                  : 0
+              }
+              size={60}
+              strokeWidth={6}
+              color="#FFB84D"
+            >
+              <Zap color="#FFB84D" size={20} />
+            </ProgressRing>
+          </Card>
+
+          <Card style={styles.macroCard}>
+            <View style={styles.macroCardHeader}>
+              <Text style={styles.macroValue}>
+                {Math.max(
+                  0,
+                  (dashboardData?.fatsTarget || 70) -
+                    (dashboardData?.totalFats || 0),
+                )}
+                g
+              </Text>
+              <Text style={styles.macroLabel}>Fats left</Text>
+            </View>
+            <ProgressRing
+              progress={
+                dashboardData
+                  ? Math.min(
+                      1,
+                      (dashboardData.totalFats || 0) /
+                        (dashboardData.fatsTarget || 70),
+                    )
+                  : 0
+              }
+              size={60}
+              strokeWidth={6}
+              color="#4D94FF"
+            >
+              <Utensils color="#4D94FF" size={20} />
+            </ProgressRing>
+          </Card>
+        </View>
+
+        <TouchableOpacity
+          style={styles.addMealHero}
+          onPress={() => setCurrentView("add-meal")}
+        >
+          <LinearGradient
+            colors={[Colors.primary, "#24243e"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradientBtn}
+          >
+            <Plus color="#FFF" size={24} />
+            <Text style={styles.addMealText}>Add a Meal</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <Text style={styles.sectionTitle}>Recent Meals</Text>
+        {dashboardData?.meals && dashboardData.meals.length > 0 ? (
+          dashboardData.meals.map((meal: any) => (
+            <Card key={meal.id} style={styles.mealCard}>
+              <View style={styles.mealInfo}>
+                <Text style={styles.mealDesc}>{meal.description}</Text>
+                <Text style={styles.mealMacros}>
+                  P: {meal.protein}g | C: {meal.carbs}g | F: {meal.fats}g
+                </Text>
+              </View>
+              <Text style={styles.mealCals}>{meal.calories} kcal</Text>
+            </Card>
+          ))
+        ) : (
+          <Text style={styles.emptyText}>No meals tracked today yet.</Text>
+        )}
+      </ScrollView>
+
+      {/* Page 2: Progress Section */}
+      <View style={{ width }}>
+        {progressData ? (
+          <CalorieProgress data={progressData} />
+        ) : (
+          <View style={[styles.mainContainer, styles.center]}>
+            <ActivityIndicator color={Colors.primary} />
+            <Text style={{ color: Colors.textMuted, marginTop: 12 }}>
+              Loading progress...
+            </Text>
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 
@@ -405,12 +616,18 @@ export default function CalorieScreen() {
 
         <TextInput
           style={styles.textArea}
-          placeholder="What did you eat? Or let AI see the photo..."
           multiline
           numberOfLines={4}
           value={mealDescription}
           onChangeText={setMealDescription}
         />
+
+        <View style={styles.aiNote}>
+          <Info color={Colors.textMuted} size={16} />
+          <Text style={styles.aiNoteText}>
+            What did you eat? Or let AI see the photo...
+          </Text>
+        </View>
 
         <TouchableOpacity
           style={[styles.primaryBtn, isAnalyzing && { opacity: 0.7 }]}
@@ -520,6 +737,9 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
   },
+  horizontalPager: {
+    flex: 1,
+  },
   scrollContainer: {
     flex: 1,
   },
@@ -594,11 +814,88 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 20,
-    marginBottom: 30,
+    marginBottom: 20,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   dashTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
+    color: "#FFF",
+    fontFamily: Fonts.bold,
+  },
+  streakBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  streakText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#000",
+    fontFamily: Fonts.bold,
+  },
+  calendarContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 30,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    padding: 10,
+    borderRadius: 24,
+  },
+  dayItem: {
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    flex: 1,
+  },
+  selectedDayItem: {
+    backgroundColor: "#FFF",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  dayNameText: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.5)",
+    fontFamily: Fonts.medium,
+    marginBottom: 8,
+  },
+  selectedDayText: {
+    color: "#000",
+  },
+  dayCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+  },
+  selectedDayCircle: {
+    borderColor: "#000",
+  },
+  dashedDayCircle: {
+    borderColor: "rgba(255,255,255,0.3)",
+    borderStyle: "dashed",
+  },
+  dayNumText: {
+    fontSize: 14,
     color: "#FFF",
     fontFamily: Fonts.bold,
   },
@@ -635,6 +932,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     elevation: 0,
     marginVertical: 0,
+    height: 140, // Fixed height to align cards
+    justifyContent: "space-between",
+  },
+  macroCardHeader: {
+    alignItems: "center",
+    width: "100%",
   },
   macroValue: {
     fontSize: 14,
@@ -720,6 +1023,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
+    marginTop: 23,
   },
   modalTitle: {
     fontSize: 18,
@@ -742,6 +1046,46 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
+  },
+  celebrationContainer: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  celebrationGradient: {
+    width: "100%",
+    padding: 30,
+    borderRadius: 24,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(252, 163, 17, 0.3)",
+  },
+  celebrationTitle: {
+    fontSize: 24,
+    color: "#FFF",
+    fontFamily: Fonts.bold,
+    marginTop: 15,
+  },
+  celebrationText: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.8)",
+    fontFamily: Fonts.regular,
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  resetBtn: {
+    backgroundColor: "rgba(255,255,255,0.1)",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  resetBtnText: {
+    color: "#FFF",
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
   },
   aiNote: {
     flexDirection: "row",

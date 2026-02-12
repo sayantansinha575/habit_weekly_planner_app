@@ -50,8 +50,11 @@ export const getCalAiDashboard = async (userId: string) => {
   const totalCarbs = meals.reduce((sum, m) => sum + m.carbs, 0);
   const totalFats = meals.reduce((sum, m) => sum + m.fats, 0);
 
-  // Daily target check (can be dynamic based on profile in future)
+  // Daily targets check (can be dynamic based on profile in future)
   const dailyTarget = 2000;
+  const proteinTarget = 150;
+  const carbsTarget = 250;
+  const fatsTarget = 70;
 
   return {
     caloriesLeft: dailyTarget - totalCalories,
@@ -59,6 +62,10 @@ export const getCalAiDashboard = async (userId: string) => {
     totalProtein,
     totalCarbs,
     totalFats,
+    dailyTarget,
+    proteinTarget,
+    carbsTarget,
+    fatsTarget,
     meals,
     streak: 0,
   };
@@ -141,4 +148,70 @@ export const analyzeMeal = async (
     console.error("AI Analysis failed:", error);
     throw error;
   }
+};
+
+export const getCalAiProgress = async (userId: string) => {
+  const profile: any = await (prisma.calAiProfile as any).findUnique({
+    where: { userId },
+    include: { user: true },
+  });
+
+  if (!profile) return null;
+
+  // Last 7 days calories
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const meals = await prisma.calAiMeal.findMany({
+    where: {
+      userId,
+      date: { gte: sevenDaysAgo },
+    },
+    orderBy: { date: "asc" },
+  });
+
+  // Group by day
+  const dailyCalories: Record<string, number> = {};
+  meals.forEach((meal) => {
+    const day = new Date(meal.date).toISOString().split("T")[0];
+    dailyCalories[day] = (dailyCalories[day] || 0) + meal.calories;
+  });
+
+  const chartData = Object.entries(dailyCalories).map(([date, calories]) => ({
+    date,
+    calories,
+  }));
+
+  // Simple BMI: Weight (kg) / [Height (m)]^2
+  const heightInMeters = parseFloat(profile.height) / 100;
+  const bmi = profile.currentWeight / (heightInMeters * heightInMeters);
+
+  let bmiCategory = "Healthy";
+  if (bmi < 18.5) bmiCategory = "Underweight";
+  else if (bmi >= 25 && bmi < 30) bmiCategory = "Overweight";
+  else if (bmi >= 30) bmiCategory = "Obese";
+
+  return {
+    currentWeight: profile.currentWeight,
+    goalWeight: profile.goalWeight,
+    bmi: parseFloat(bmi.toFixed(2)),
+    bmiCategory,
+    chartData,
+    streak: profile.user ? (profile.user as any).dailyStreak || 0 : 0,
+  };
+};
+
+export const resetTodayMeals = async (userId: string) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return await prisma.calAiMeal.deleteMany({
+    where: {
+      userId,
+      date: {
+        gte: today,
+      },
+    },
+  });
 };

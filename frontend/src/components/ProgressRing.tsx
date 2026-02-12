@@ -13,6 +13,7 @@ interface ProgressRingProps {
   centerText?: string;
   textColor?: string;
   labelColor?: string;
+  children?: React.ReactNode;
 }
 
 const ProgressRing = ({
@@ -25,6 +26,7 @@ const ProgressRing = ({
   centerText,
   textColor,
   labelColor,
+  children,
 }: ProgressRingProps) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -58,11 +60,18 @@ const ProgressRing = ({
           />
         </Svg>
         <View style={[StyleSheet.absoluteFill, styles.centerContent]}>
-          <Text
-            style={[styles.centerText, textColor ? { color: textColor } : null]}
-          >
-            {centerText || `${Math.round(progress * 100)}%`}
-          </Text>
+          {children ? (
+            children
+          ) : (
+            <Text
+              style={[
+                styles.centerText,
+                textColor ? { color: textColor } : null,
+              ]}
+            >
+              {centerText || `${Math.round(progress * 100)}%`}
+            </Text>
+          )}
         </View>
       </View>
       {label && (
