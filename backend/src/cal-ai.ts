@@ -2,7 +2,8 @@ import { prisma } from "./prisma";
 
 const GEMINI_API_KEY =
   process.env.GEMINI_API_KEY || "AIzaSyC0zGnG5zkQQ9gwZJkrvjkfVgIR4a2_LW0";
-const MODEL_NAME = "gemini-3-flash-preview";
+// const MODEL_NAME = "gemini-3-flash-preview";
+const MODEL_NAME = "gemini-1.5-flash";
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
 
 export const getCalAiProfile = async (userId: string) => {
