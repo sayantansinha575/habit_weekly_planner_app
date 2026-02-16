@@ -193,10 +193,17 @@ export default function DashboardScreen() {
                 </Text>
 
                 <View style={styles.dayProgressContainer}>
-                  <View style={styles.dayProgressTrack} />
-                  <View
-                    style={[styles.dayProgressFill, { height: `${dayRate}%` }]}
-                  />
+                  {isSelected && (
+                    <>
+                      <View style={styles.dayProgressTrack} />
+                      <View
+                        style={[
+                          styles.dayProgressFill,
+                          { height: `${dayRate}%` },
+                        ]}
+                      />
+                    </>
+                  )}
                   <View
                     style={[
                       styles.dayCircle,
