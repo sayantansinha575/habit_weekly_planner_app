@@ -17,6 +17,7 @@ import GoalModal from "@/src/components/GoalModal";
 import { storage } from "@/src/utils/storage";
 import { useFocusEffect } from "@react-navigation/native";
 import ProgressRing from "@/src/components/ProgressRing";
+import { StatusBar } from "expo-status-bar";
 
 export default function DashboardScreen() {
   const TEST_USER_ID = "user-123";
@@ -144,8 +145,17 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" />
+      <LinearGradient
+        colors={["#E3F2FD", "#F3E5F5", "#FCE4EC"]}
+        style={StyleSheet.absoluteFill}
+      />
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
+          <LinearGradient
+            colors={["rgba(255,255,255,0.4)", "transparent"]}
+            style={styles.headerGlow}
+          />
           <Text style={styles.greeting}>{getGreeting()},</Text>
           <View style={styles.nameRow}>
             <Text style={styles.name}>{weather.temp}°C</Text>
@@ -162,6 +172,11 @@ export default function DashboardScreen() {
             });
             const dayNum = date.getDate().toString().padStart(2, "0");
 
+            const dayMatch = stats.rollingProgress?.find(
+              (p: any) => p.day === dayName,
+            );
+            const dayRate = dayMatch ? dayMatch.rate : 0;
+
             return (
               <TouchableOpacity
                 key={index}
@@ -176,22 +191,29 @@ export default function DashboardScreen() {
                 >
                   {dayName}
                 </Text>
-                <View
-                  style={[
-                    styles.dayCircle,
-                    isSelected
-                      ? styles.selectedDayCircle
-                      : styles.dashedDayCircle,
-                  ]}
-                >
-                  <Text
+
+                <View style={styles.dayProgressContainer}>
+                  <View style={styles.dayProgressTrack} />
+                  <View
+                    style={[styles.dayProgressFill, { height: `${dayRate}%` }]}
+                  />
+                  <View
                     style={[
-                      styles.dayNumText,
-                      isSelected && styles.selectedDayText,
+                      styles.dayCircle,
+                      isSelected
+                        ? styles.selectedDayCircle
+                        : styles.dashedDayCircle,
                     ]}
                   >
-                    {dayNum}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.dayNumText,
+                        isSelected && styles.selectedDayTextItalic,
+                      ]}
+                    >
+                      {dayNum}
+                    </Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             );
@@ -225,19 +247,20 @@ export default function DashboardScreen() {
             </View>
           </View>
         </LinearGradient>
-        <Card style={styles.insightsPreview}>
+        <View style={styles.insightsPreviewContainer}>
+          <View
+            style={[
+              styles.insightsProgressBarFill,
+              { width: `${stats.completionRate}%` },
+            ]}
+          />
           <Text style={styles.insightText}>
             You complete{" "}
-            <Text style={{ color: Colors.primary, fontWeight: "700" }}>
-              {stats.completionRate}%
-            </Text>{" "}
+            <Text style={styles.insightHighlight}>{stats.completionRate}%</Text>{" "}
             tasks overall. Best day:{" "}
-            <Text style={{ color: Colors.primary, fontWeight: "700" }}>
-              {stats.bestDay}
-            </Text>
-            .
+            <Text style={styles.insightHighlight}>{stats.bestDay}</Text>.
           </Text>
-        </Card>
+        </View>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Today's Plan</Text>
           <Text style={styles.sectionAction}>View all</Text>
@@ -296,7 +319,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: "transparent",
   },
   container: {
     padding: 20,
@@ -305,6 +328,15 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 20,
     marginTop: 20,
+    position: "relative",
+  },
+  headerGlow: {
+    position: "absolute",
+    top: -60,
+    left: -20,
+    right: -20,
+    height: 120,
+    zIndex: -1,
   },
   nameRow: {
     flexDirection: "row",
@@ -373,17 +405,36 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontFamily: Fonts.semiBold,
   },
-  insightsPreview: {
-    marginTop: 7,
-    backgroundColor: "rgb(237, 232, 234)",
-    borderColor: "rgba(29, 26, 35, 0.1)",
+  insightsPreviewContainer: {
+    marginTop: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    borderRadius: 20,
+    height: 40,
+    justifyContent: "center",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    marginBottom: 24,
+  },
+  insightsProgressBarFill: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    borderRadius: 20,
   },
   insightText: {
     color: Colors.text,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
     textAlign: "center",
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.medium,
+    zIndex: 1,
+  },
+  insightHighlight: {
+    color: Colors.primary,
+    fontWeight: "800",
+    fontFamily: Fonts.bold,
   },
   fab: {
     position: "absolute",
@@ -428,28 +479,59 @@ const styles = StyleSheet.create({
     minWidth: 45,
   },
   selectedDayItem: {
-    backgroundColor: "#FFF",
-    elevation: 4,
-    shadowColor: "#000",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    elevation: 6,
+    shadowColor: "rgba(0,0,0,0.1)",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 1,
+    shadowRadius: 12,
   },
   dayNameText: {
     fontSize: 12,
-    color: Colors.textMuted,
-    fontFamily: Fonts.medium,
+    color: "#1D1A23",
+    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
     marginBottom: 8,
   },
   selectedDayText: {
     color: "#000",
   },
-  dayCircle: {
+  selectedDayTextItalic: {
+    color: "#000",
+    fontStyle: "italic",
+    fontFamily: Fonts.bold,
+  },
+  dayProgressContainer: {
     width: 36,
-    height: 36,
-    borderRadius: 18,
+    height: 60,
+    justifyContent: "flex-end",
+    alignItems: "center",
+    position: "relative",
+  },
+  dayProgressTrack: {
+    position: "absolute",
+    width: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    top: 0,
+    bottom: 0,
+    borderRadius: 5,
+  },
+  dayProgressFill: {
+    position: "absolute",
+    width: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    bottom: 0,
+    borderRadius: 5,
+    maxHeight: "100%",
+  },
+  dayCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "transparent",
+    zIndex: 2,
   },
   selectedDayCircle: {
     borderWidth: 1.5,
