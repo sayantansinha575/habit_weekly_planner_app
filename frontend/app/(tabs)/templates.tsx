@@ -15,6 +15,8 @@ import {
   Zap,
   ChevronRight,
 } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { Colors, Fonts } from "@/src/theme/colors";
 import Card from "@/src/components/Card";
 import { storage } from "@/src/utils/storage";
@@ -95,6 +97,11 @@ export default function TemplatesScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" />
+      <LinearGradient
+        colors={["#E3F2FD", "#F3E5F5", "#FCE4EC"]}
+        style={StyleSheet.absoluteFill}
+      />
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Weekly Templates</Text>
@@ -138,7 +145,7 @@ export default function TemplatesScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: "transparent",
   },
   container: {
     padding: 20,
@@ -161,6 +168,16 @@ const styles = StyleSheet.create({
   },
   templateCard: {
     padding: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2,
   },
   iconContainer: {
     flexDirection: "row",

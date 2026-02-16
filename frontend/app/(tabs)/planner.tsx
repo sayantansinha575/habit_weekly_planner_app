@@ -16,6 +16,8 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { Colors, Fonts } from "@/src/theme/colors";
 import TaskItem from "@/src/components/TaskItem";
 import ProgressRing from "@/src/components/ProgressRing";
@@ -201,7 +203,12 @@ export default function PlannerScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.calendarHeader}>
+      <StatusBar style="dark" />
+      <LinearGradient
+        colors={["#E3F2FD", "#F3E5F5", "#FCE4EC"]}
+        style={StyleSheet.absoluteFill}
+      />
+      {/* <View style={styles.calendarHeader}>
         <TouchableOpacity>
           <ChevronLeft color={Colors.text} size={24} />
         </TouchableOpacity>
@@ -212,7 +219,7 @@ export default function PlannerScreen() {
         <TouchableOpacity>
           <ChevronRight color={Colors.text} size={24} />
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.statsRow}>
@@ -365,7 +372,7 @@ export default function PlannerScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: "transparent",
   },
   calendarHeader: {
     flexDirection: "row",
@@ -373,9 +380,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: Colors.card,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
+    borderBottomColor: "rgba(255, 255, 255, 0.2)",
   },
   dateInfo: {
     marginTop: 16,
@@ -398,15 +405,17 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-around",
-    backgroundColor: Colors.card,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
     borderRadius: 20,
     padding: 20,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 3,
+    elevation: 2,
   },
   statItem: {
     alignItems: "center",
@@ -488,15 +497,17 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 360, // Rough position, ideally we'd use layout measurements
     right: 20,
-    backgroundColor: Colors.card,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: 12,
     padding: 8,
     minWidth: 150,
     elevation: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   menuItem: {
     padding: 12,

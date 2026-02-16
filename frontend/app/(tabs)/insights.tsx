@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { TrendingUp, Calendar, Clock, Award } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { Colors, Fonts } from "@/src/theme/colors";
 import Card from "@/src/components/Card";
 import ProgressRing from "@/src/components/ProgressRing";
@@ -74,6 +76,11 @@ export default function InsightsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" />
+      <LinearGradient
+        colors={["#E3F2FD", "#F3E5F5", "#FCE4EC"]}
+        style={StyleSheet.absoluteFill}
+      />
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Personal Insights</Text>
@@ -215,7 +222,7 @@ export default function InsightsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: "transparent",
   },
   container: {
     padding: 20,
@@ -244,6 +251,15 @@ const styles = StyleSheet.create({
     width: "48%",
     alignItems: "center",
     padding: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2,
   },
   statValue: {
     color: Colors.text,
@@ -260,8 +276,16 @@ const styles = StyleSheet.create({
   },
   mainInsight: {
     marginTop: 20,
-    backgroundColor: "#FFF",
-    borderColor: "rgba(29, 26, 35, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2,
   },
   insightHeader: {
     flexDirection: "row",
@@ -293,6 +317,15 @@ const styles = StyleSheet.create({
   },
   patternCard: {
     padding: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2,
   },
   patternHeader: {
     flexDirection: "row",
@@ -323,13 +356,15 @@ const styles = StyleSheet.create({
   quoteCard: {
     marginTop: 40,
     padding: 24,
-    borderRadius: 16,
+    borderRadius: 20,
     borderLeftWidth: 4,
     borderLeftColor: Colors.primary,
-    backgroundColor: "#FFF",
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.02,
     shadowRadius: 10,
     elevation: 2,
   },
@@ -343,8 +378,15 @@ const styles = StyleSheet.create({
   chartCard: {
     padding: 24,
     paddingBottom: 50,
-    backgroundColor: "#FFF",
-    borderColor: "rgba(29, 26, 35, 0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2,
   },
   chartContainer: {
     flexDirection: "row",
