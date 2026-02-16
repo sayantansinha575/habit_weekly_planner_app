@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { Flame, Plus } from "lucide-react-native";
+import { Flame, Plus, Sun, Cloud, Moon, CloudSun } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Fonts } from "@/src/theme/colors";
 import Card from "@/src/components/Card";
@@ -16,6 +16,7 @@ import TaskItem from "@/src/components/TaskItem";
 import GoalModal from "@/src/components/GoalModal";
 import { storage } from "@/src/utils/storage";
 import { useFocusEffect } from "@react-navigation/native";
+import ProgressRing from "@/src/components/ProgressRing";
 
 export default function DashboardScreen() {
   const TEST_USER_ID = "user-123";
@@ -24,11 +25,38 @@ export default function DashboardScreen() {
     dailyStreak: 0,
     completionRate: 0,
   });
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [weather, setWeather] = useState({ temp: 24 });
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const isFetchingRef = React.useRef(false);
+  const weekDays = React.useMemo(() => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      days.push(date);
+    }
+    return days;
+  }, []);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    if (hour < 21) return "Good Evening";
+    return "Good Night";
+  };
+
+  const getWeatherIcon = () => {
+    const hour = new Date().getHours();
+    if (hour < 6 || hour >= 21) return <Moon color={Colors.text} size={28} />;
+    if (hour < 12) return <Sun color="#FCA311" size={28} />;
+    if (hour < 17) return <CloudSun color="#FCA311" size={28} />;
+    return <Cloud color={Colors.textMuted} size={28} />;
+  };
 
   const loadData = React.useCallback(async () => {
     if (isFetchingRef.current) return;
@@ -38,7 +66,7 @@ export default function DashboardScreen() {
     try {
       if (!hasLoadedOnce) setLoading(true);
 
-      const date = new Date();
+      const date = selectedDate;
 
       const [tasksData, statsData] = await Promise.all([
         storage.fetchTasksonCurrentDate(TEST_USER_ID, date),
@@ -56,7 +84,11 @@ export default function DashboardScreen() {
       }
       isFetchingRef.current = false;
     }
-  }, [hasLoadedOnce]);
+  }, [hasLoadedOnce, selectedDate]);
+
+  React.useEffect(() => {
+    loadData();
+  }, [selectedDate, loadData]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -104,12 +136,66 @@ export default function DashboardScreen() {
     }
   };
 
+  const completionProgress =
+    currentDatetasks.length > 0
+      ? currentDatetasks.filter((t: any) => t.isCompleted).length /
+        currentDatetasks.length
+      : 0;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.greeting}>Good Morning,</Text>
-          <Text style={styles.name}>Champion 🚀</Text>
+          <Text style={styles.greeting}>{getGreeting()},</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{weather.temp}°C</Text>
+            {getWeatherIcon()}
+          </View>
+        </View>
+
+        <View style={styles.calendarContainer}>
+          {weekDays.map((date, index) => {
+            const isSelected =
+              date.toDateString() === selectedDate.toDateString();
+            const dayName = date.toLocaleDateString("en-US", {
+              weekday: "short",
+            });
+            const dayNum = date.getDate().toString().padStart(2, "0");
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={[styles.dayItem, isSelected && styles.selectedDayItem]}
+                onPress={() => setSelectedDate(date)}
+              >
+                <Text
+                  style={[
+                    styles.dayNameText,
+                    isSelected && styles.selectedDayText,
+                  ]}
+                >
+                  {dayName}
+                </Text>
+                <View
+                  style={[
+                    styles.dayCircle,
+                    isSelected
+                      ? styles.selectedDayCircle
+                      : styles.dashedDayCircle,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.dayNumText,
+                      isSelected && styles.selectedDayText,
+                    ]}
+                  >
+                    {dayNum}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <LinearGradient
@@ -123,7 +209,20 @@ export default function DashboardScreen() {
               <Text style={styles.streakLabel}>Current Streak</Text>
               <Text style={styles.streakValue}>{stats.dailyStreak} Days</Text>
             </View>
-            <Flame color={Colors.secondary} size={48} />
+            <View style={styles.ringWrapper}>
+              <ProgressRing
+                progress={completionProgress}
+                size={70}
+                strokeWidth={6}
+                color={Colors.secondary}
+              >
+                <Flame
+                  color={Colors.secondary}
+                  fill={Colors.secondary}
+                  size={32}
+                />
+              </ProgressRing>
+            </View>
           </View>
         </LinearGradient>
         <Card style={styles.insightsPreview}>
@@ -204,8 +303,13 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 20,
     marginTop: 20,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   greeting: {
     color: Colors.textMuted,
@@ -231,6 +335,12 @@ const styles = StyleSheet.create({
   streakContent: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+  },
+  ringWrapper: {
+    width: 70,
+    height: 70,
+    justifyContent: "center",
     alignItems: "center",
   },
   streakLabel: {
@@ -300,10 +410,60 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyText: {
-    color: Colors.textMuted,
-    fontSize: 14,
-    fontStyle: "normal",
     fontWeight: "bold",
     fontFamily: "Inter, sans-serif",
+  },
+  calendarContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+    paddingHorizontal: 4,
+  },
+  dayItem: {
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 20,
+    minWidth: 45,
+  },
+  selectedDayItem: {
+    backgroundColor: "#FFF",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  dayNameText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontFamily: Fonts.medium,
+    marginBottom: 8,
+  },
+  selectedDayText: {
+    color: "#000",
+  },
+  dayCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  selectedDayCircle: {
+    borderWidth: 1.5,
+    borderColor: "#000",
+  },
+  dashedDayCircle: {
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderStyle: "dashed",
+  },
+  dayNumText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.text,
+    fontFamily: Fonts.bold,
   },
 });

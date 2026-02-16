@@ -127,6 +127,47 @@ export default function InsightsScreen() {
         </Card>
 
         <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Task Progress</Text>
+        </View>
+
+        <Card style={styles.chartCard}>
+          <View style={styles.chartContainer}>
+            {stats.weeklyProgress?.map((item: any, index: number) => {
+              const colors = [
+                "#8ECAE6",
+                "#7ED3AD",
+                "#C2A3D1",
+                "#FCA311",
+                "#FFD166",
+                "#06D6A0",
+                "#118AB2",
+              ];
+              const barColor = colors[index % colors.length];
+              return (
+                <View key={index} style={styles.barWrapper}>
+                  <Text style={styles.barPercentage}>{item.rate}%</Text>
+                  <View style={styles.barBackground}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        {
+                          height: `${Math.max(item.rate, 2)}%`,
+                          backgroundColor: barColor,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.labelWrapper}>
+                    <Text style={styles.rotatedLabel}>{item.day}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+          <View style={styles.chartBaseLine} />
+        </Card>
+
+        <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Productivity Patterns</Text>
         </View>
 
@@ -298,5 +339,58 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     lineHeight: 20,
     fontFamily: Fonts.regular,
+  },
+  chartCard: {
+    padding: 24,
+    paddingBottom: 50,
+    backgroundColor: "#FFF",
+    borderColor: "rgba(29, 26, 35, 0.05)",
+  },
+  chartContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    height: 140,
+  },
+  barWrapper: {
+    alignItems: "center",
+    flex: 1,
+  },
+  barPercentage: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: Colors.textMuted,
+    marginBottom: 8,
+    fontFamily: Fonts.bold,
+  },
+  barBackground: {
+    width: 28,
+    height: 100,
+    backgroundColor: "transparent",
+    justifyContent: "flex-end",
+  },
+  barFill: {
+    width: "100%",
+    borderRadius: 4,
+  },
+  labelWrapper: {
+    position: "absolute",
+    bottom: -45,
+    width: 80,
+    alignItems: "center",
+  },
+  rotatedLabel: {
+    fontSize: 11,
+    color: "#5B5B9D",
+    fontFamily: Fonts.medium,
+    transform: [{ rotate: "-35deg" }],
+    textAlign: "right",
+    width: 70,
+  },
+  chartBaseLine: {
+    height: 2,
+    backgroundColor: "rgba(0,0,0,0.1)",
+    marginTop: 2,
+    width: "100%",
   },
 });

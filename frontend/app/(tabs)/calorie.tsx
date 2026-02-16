@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -51,6 +51,8 @@ export default function CalorieScreen() {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [progressData, setProgressData] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [dashboardPageIndex, setDashboardPageIndex] = useState(0);
+  const horizontalPagerRef = useRef<ScrollView>(null);
 
   // Generate last 7 days
   const getLast7Days = () => {
@@ -185,6 +187,8 @@ export default function CalorieScreen() {
       Alert.alert("Error", "Failed to save profile");
     } finally {
       setLoading(false);
+      // After update, go back to dashboard
+      setCurrentView("dashboard");
     }
   };
 
@@ -310,10 +314,16 @@ export default function CalorieScreen() {
 
   const renderDashboard = () => (
     <ScrollView
+      ref={horizontalPagerRef}
       horizontal
       pagingEnabled
       showsHorizontalScrollIndicator={false}
       style={styles.horizontalPager}
+      contentOffset={{ x: dashboardPageIndex * width, y: 0 }}
+      onMomentumScrollEnd={(e) => {
+        const index = Math.round(e.nativeEvent.contentOffset.x / width);
+        setDashboardPageIndex(index);
+      }}
     >
       {/* Page 1: Main Dashboard */}
       <ScrollView
@@ -555,7 +565,10 @@ export default function CalorieScreen() {
       {/* Page 2: Progress Section */}
       <View style={{ width }}>
         {progressData ? (
-          <CalorieProgress data={progressData} />
+          <CalorieProgress
+            data={progressData}
+            onProfilePress={() => setCurrentView("profile")}
+          />
         ) : (
           <View style={[styles.mainContainer, styles.center]}>
             <ActivityIndicator color={Colors.primary} />
@@ -667,7 +680,7 @@ export default function CalorieScreen() {
         >
           <ChevronLeft color="#FFF" size={28} />
         </TouchableOpacity>
-        <Text style={styles.modalTitle}>Cal AI Profile</Text>
+        <Text style={styles.modalTitle}>Calorie AI Profile</Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -708,8 +721,16 @@ export default function CalorieScreen() {
           }
         />
 
-        <TouchableOpacity style={styles.primaryBtn} onPress={handleSaveProfile}>
-          <Text style={styles.primaryBtnText}>Update Profile</Text>
+        <TouchableOpacity
+          style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+          onPress={handleSaveProfile}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <Text style={styles.primaryBtnText}>Update Profile</Text>
+          )}
         </TouchableOpacity>
       </Card>
     </ScrollView>

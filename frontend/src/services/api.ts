@@ -7,15 +7,24 @@ const getBackendUrl = () => {
   // For iOS Simulator or Web, use localhost
 
   // DEV CONFIG: Local IP for physical device
+  const isProduction = true;
   const LOCAL_IP = "192.168.0.101";
 
   if (Platform.OS === "android") {
     // Return local IP for physical Android device
-    return `http://${LOCAL_IP}:3000`;
+    if (isProduction) {
+      return "https://habit-weekly-planner-app.onrender.com";
+    } else {
+      return `http://${LOCAL_IP}:3000`;
+    }
   }
 
   if (Platform.OS === "ios") {
-    return `http://${LOCAL_IP}:3000`;
+    if (isProduction) {
+      return "https://habit-weekly-planner-app.onrender.com";
+    } else {
+      return `http://${LOCAL_IP}:3000`;
+    }
   }
 
   return "http://localhost:3000";

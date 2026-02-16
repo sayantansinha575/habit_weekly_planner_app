@@ -8,7 +8,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { Flame, TrendingUp, Info, Scale, PieChart } from "lucide-react-native";
+import {
+  Flame,
+  TrendingUp,
+  Info,
+  Scale,
+  PieChart,
+  User as UserIcon,
+} from "lucide-react-native";
 import { Colors, Fonts } from "@/src/theme/colors";
 import Card from "@/src/components/Card";
 import { LinearGradient } from "expo-linear-gradient";
@@ -32,6 +39,7 @@ interface CalorieProgressProps {
     chartData: Array<{ date: string; calories: number }>;
     streak: number;
   };
+  onProfilePress?: () => void;
 }
 
 const Chart = ({
@@ -80,7 +88,10 @@ const Chart = ({
   );
 };
 
-export default function CalorieProgress({ data }: CalorieProgressProps) {
+export default function CalorieProgress({
+  data,
+  onProfilePress,
+}: CalorieProgressProps) {
   const weightProgress = Math.max(
     0,
     Math.min(
@@ -98,7 +109,12 @@ export default function CalorieProgress({ data }: CalorieProgressProps) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Progress</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Progress</Text>
+        <TouchableOpacity style={styles.profileBtn} onPress={onProfilePress}>
+          <UserIcon color="#FFF" size={24} />
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.row}>
         {/* Weight Card */}
@@ -229,9 +245,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#000",
+    color: "#FFF",
     fontFamily: Fonts.bold,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
+    marginTop: 20,
+  },
+  profileBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
   },
   row: {
     flexDirection: "row",
