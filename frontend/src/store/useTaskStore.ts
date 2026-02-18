@@ -1,0 +1,220 @@
+import { create } from "zustand";
+import { storage } from "../utils/storage";
+import { notificationUtils } from "../utils/notifications";
+
+interface Task {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+  scheduledDate: string | Date;
+  scheduledTime?: string;
+  isNotificationEnabled?: boolean;
+  isAutoRolled?: boolean;
+}
+
+interface Stats {
+  dailyStreak: number;
+  weeklyStreak: number;
+  completionRate: number;
+  bestDay: string;
+  totalTasks: number;
+  completedTasks: number;
+  weeklyProgress: Array<{ day: string; rate: number }>;
+  rollingProgress?: Array<{ day: string; rate: number }>;
+}
+
+interface TaskState {
+  tasks: Task[];
+  stats: Stats | null;
+  loading: boolean;
+  isSyncing: boolean;
+
+  // Actions
+  loadTasks: (userId: string) => Promise<void>;
+  loadStats: (userId: string) => Promise<void>;
+  addTask: (userId: string, taskData: any) => Promise<void>;
+  toggleTask: (taskId: string) => Promise<void>;
+  updateTask: (taskId: string, taskData: any) => Promise<void>;
+  deleteTasks: (taskIds: string[]) => Promise<void>;
+  applyTemplate: (userId: string, templateId: string) => Promise<void>;
+}
+
+export const useTaskStore = create<TaskState>((set, get) => ({
+  tasks: [],
+  stats: null,
+  loading: false,
+  isSyncing: false,
+
+  loadTasks: async (userId) => {
+    set({ loading: true });
+    try {
+      // 1. Local First
+      const { local, sync } = await storage.fetchTasks(userId);
+      set({ tasks: local, loading: false });
+
+      // 2. Background Sync
+      const synced = await sync;
+      if (synced) {
+        set({ tasks: synced });
+      }
+    } catch (e) {
+      console.error("Store loadTasks failed", e);
+      set({ loading: false });
+    }
+  },
+
+  loadStats: async (userId) => {
+    try {
+      const { local, sync } = await storage.getUserStats(userId);
+      set({ stats: local });
+
+      const synced = await sync;
+      if (synced) {
+        set({ stats: synced });
+      }
+    } catch (e) {
+      console.error("Store loadStats failed", e);
+    }
+  },
+
+  addTask: async (userId, goalData) => {
+    const dateToSave =
+      goalData.scheduledDate instanceof Date
+        ? goalData.scheduledDate
+        : new Date(goalData.scheduledDate);
+
+    // We create a temp task for immediate UI feedback
+    const tempId = `temp-${Date.now()}`;
+    const tempTask: Task = {
+      id: tempId,
+      title: goalData.title,
+      isCompleted: false,
+      scheduledDate: dateToSave,
+      scheduledTime: goalData.scheduledTime,
+    };
+
+    // 1. Optimistic Update
+    const previousTasks = get().tasks;
+    set({ tasks: [...previousTasks, tempTask] });
+
+    try {
+      const newTask = await storage.addTask(
+        userId,
+        goalData.title,
+        dateToSave,
+        goalData.scheduledTime,
+        goalData.useNotification,
+      );
+
+      // 2. Replace temp task with real one
+      set((state) => ({
+        tasks: state.tasks.map((t) => (t.id === tempId ? newTask : t)),
+      }));
+      // 3. Ensure notification is scheduled (logic is inside storage.addTask but store can reinforce)
+      notificationUtils.scheduleTaskNotification(newTask);
+    } catch (e) {
+      set({ tasks: previousTasks }); // Rollback
+      throw e;
+    }
+  },
+
+  toggleTask: async (taskId) => {
+    const previousTasks = get().tasks;
+
+    // 1. Optimistic Update
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === taskId ? { ...t, isCompleted: !t.isCompleted } : t,
+      ),
+    }));
+
+    try {
+      await storage.toggleTask(taskId);
+      // Auto-refresh stats in background
+      get().loadStats("user-123");
+
+      // Update notification state
+      const task = get().tasks.find((t) => t.id === taskId);
+      if (task) {
+        notificationUtils.scheduleTaskNotification(task);
+      }
+    } catch (e) {
+      set({ tasks: previousTasks }); // Rollback
+      throw e;
+    }
+  },
+
+  updateTask: async (taskId, goalData) => {
+    const previousTasks = get().tasks;
+    const dateToSave =
+      goalData.scheduledDate instanceof Date
+        ? goalData.scheduledDate
+        : new Date(goalData.scheduledDate);
+
+    // 1. Optimistic Update
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === taskId ? { ...t, ...goalData, scheduledDate: dateToSave } : t,
+      ),
+    }));
+
+    try {
+      const updatedTask = await storage.updateTask(
+        taskId,
+        goalData.title,
+        dateToSave,
+        goalData.scheduledTime,
+        goalData.useNotification,
+      );
+
+      // 2. Ensure store has the canonical server version
+      set((state) => ({
+        tasks: state.tasks.map((t) => (t.id === taskId ? updatedTask : t)),
+      }));
+
+      // Auto-refresh stats
+      get().loadStats("user-123");
+
+      // Update notification
+      notificationUtils.scheduleTaskNotification(updatedTask);
+    } catch (e) {
+      set({ tasks: previousTasks }); // Rollback
+      throw e;
+    }
+  },
+
+  deleteTasks: async (taskIds) => {
+    const previousTasks = get().tasks;
+
+    // 1. Optimistic Update
+    set((state) => ({
+      tasks: state.tasks.filter((t) => !taskIds.includes(t.id)),
+    }));
+
+    try {
+      await storage.deleteTasks(taskIds);
+      // Auto-refresh stats
+      get().loadStats("user-123");
+      // Notifications are cancelled inside storage.deleteTasks, but we reinforce
+      taskIds.forEach((id) => notificationUtils.cancelTaskNotification(id));
+    } catch (e) {
+      set({ tasks: previousTasks }); // Rollback
+      throw e;
+    }
+  },
+
+  applyTemplate: async (userId, templateId) => {
+    set({ loading: true });
+    try {
+      await storage.applyTemplate(userId, templateId);
+      // After template application, we need to refresh the store
+      const { sync } = await storage.fetchTasks(userId);
+      const synced = await sync;
+      set({ tasks: synced, loading: false });
+    } catch (e) {
+      console.error("Store applyTemplate failed", e);
+      set({ loading: false });
+      throw e;
+    }
+  },
+}));

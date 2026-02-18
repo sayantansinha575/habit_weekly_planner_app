@@ -22,6 +22,7 @@ import { Colors, Fonts } from "@/src/theme/colors";
 import TaskItem from "@/src/components/TaskItem";
 import ProgressRing from "@/src/components/ProgressRing";
 import GoalModal from "@/src/components/GoalModal";
+import { useTaskStore } from "@/src/store/useTaskStore";
 import { storage } from "@/src/utils/storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { Alert, TouchableWithoutFeedback, Modal } from "react-native";
@@ -32,13 +33,18 @@ export default function PlannerScreen() {
     Using a fixed ID for development to ensure persistence works across reloads.
   */
   const TEST_USER_ID = "user-123";
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    tasks,
+    loading,
+    loadTasks,
+    toggleTask,
+    addTask,
+    updateTask,
+    deleteTasks,
+  } = useTaskStore();
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
-  const [hasLoadedTasksOnce, setHasLoadedTasksOnce] = useState(false);
-  const [isFetchingTasks, setIsFetchingTasks] = useState(false);
   const isFetchingTasksRef = React.useRef(false);
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -57,95 +63,40 @@ export default function PlannerScreen() {
     }
     return days;
   }, []);
-  const loadTasks = React.useCallback(async () => {
+  const handleLoadTasks = React.useCallback(async () => {
     if (isFetchingTasksRef.current) return;
     isFetchingTasksRef.current = true;
-
     try {
-      if (!hasLoadedTasksOnce) setLoading(true);
-
-      // 1. Get both Local and Sync promises for ALL tasks
-      const tasksResult = await storage.fetchTasks(TEST_USER_ID);
-
-      // 2. Optimistically set local data first
-      setTasks(tasksResult.local);
-      setLoading(false);
-      setHasLoadedTasksOnce(true);
-      const syncedTasks = await tasksResult.sync;
-
-      if (syncedTasks && isFetchingTasksRef.current) {
-        setTasks(syncedTasks);
-      }
+      await loadTasks(TEST_USER_ID);
     } catch (e) {
-      console.error("loadTasks failed", e);
+      console.error("Planner loadTasks failed", e);
     } finally {
       isFetchingTasksRef.current = false;
     }
-  }, [hasLoadedTasksOnce]);
+  }, [loadTasks]);
 
   React.useEffect(() => {
-    loadTasks();
-  }, []);
+    handleLoadTasks();
+  }, [handleLoadTasks]);
 
   const handleToggleTask = async (taskId: string) => {
-    const previousTasks = [...tasks];
-
-    // 1️⃣ Optimistic update
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, isCompleted: !t.isCompleted } : t,
-      ),
-    );
-
     try {
-      await storage.toggleTask(taskId);
-      // ❌ DO NOT call loadTasks()
+      await toggleTask(taskId);
+      // Stats in store will need refresh if they are visible here
     } catch (e) {
       console.error(e);
-      setTasks(previousTasks); // rollback
     }
   };
 
   const handleSaveGoal = async (goalData: any) => {
     setModalVisible(false);
-
-    const dateToSave =
-      goalData.scheduledDate instanceof Date
-        ? goalData.scheduledDate
-        : new Date(goalData.scheduledDate);
-
     try {
       if (selectedTask) {
-        // Optimistic update
-        setTasks((prev) =>
-          prev.map((t) =>
-            t.id === selectedTask.id ? { ...t, ...goalData } : t,
-          ),
-        );
-
-        await storage.updateTask(
-          selectedTask.id,
-          goalData.title,
-          dateToSave,
-          goalData.scheduledTime,
-          goalData.useNotification,
-        );
+        await updateTask(selectedTask.id, goalData);
       } else {
-        const newTask = await storage.addTask(
-          TEST_USER_ID,
-          goalData.title,
-          dateToSave,
-          goalData.scheduledTime,
-          goalData.useNotification,
-        );
-
-        // Optimistic insert
-        setTasks((prev) => [...prev, newTask]);
+        await addTask(TEST_USER_ID, goalData);
       }
-
       setSelectedTask(null);
-
-      // ❌ DO NOT call loadTasks()
     } catch (e) {
       console.error(e);
     }
@@ -193,10 +144,7 @@ export default function PlannerScreen() {
           onPress: async () => {
             try {
               const idsToDelete = Array.from(selectedTaskIds);
-              await storage.deleteTasks(idsToDelete);
-              setTasks((prev) =>
-                prev.filter((t) => !selectedTaskIds.has(t.id)),
-              );
+              await deleteTasks(idsToDelete);
               setSelectedTaskIds(new Set());
               setIsEditMode(false);
             } catch (e) {

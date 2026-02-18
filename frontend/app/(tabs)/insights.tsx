@@ -13,58 +13,30 @@ import { StatusBar } from "expo-status-bar";
 import { Colors, Fonts } from "@/src/theme/colors";
 import Card from "@/src/components/Card";
 import ProgressRing from "@/src/components/ProgressRing";
-import { storage } from "@/src/utils/storage";
 import { useFocusEffect } from "@react-navigation/native";
+import { useTaskStore } from "@/src/store/useTaskStore";
 
 export default function InsightsScreen() {
   const TEST_USER_ID = "user-123";
-  const [stats, setStats] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [hasLoadedOnce, setHasLoadedOnce] = React.useState(false);
+  const { stats, loading, loadStats } = useTaskStore();
   const isFetchingRef = React.useRef(false);
 
-  const loadStats = React.useCallback(async () => {
+  const handleLoadStats = React.useCallback(async () => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
-
     try {
-      if (!hasLoadedOnce) setLoading(true);
-
-      // 1. Get both Local and Sync promises
-      const statsResult = await storage.getUserStats(TEST_USER_ID);
-
-      // 2. Optimistically set local data first
-      setStats(statsResult.local);
-      setLoading(false);
-      setHasLoadedOnce(true);
-
-      // 3. Wait for background sync
-      const syncedStats = await statsResult.sync;
-
-      // 4. Update state with fresh data
-      if (syncedStats) setStats(syncedStats);
+      await loadStats(TEST_USER_ID);
     } catch (e) {
-      console.error("loadStats failed", e);
+      console.error("Insights handleLoadStats failed", e);
     } finally {
       isFetchingRef.current = false;
     }
-  }, [hasLoadedOnce]);
+  }, [loadStats]);
 
   useFocusEffect(
     React.useCallback(() => {
-      let isActive = true;
-
-      const run = async () => {
-        if (!isActive) return;
-        await loadStats();
-      };
-
-      run();
-
-      return () => {
-        isActive = false;
-      };
-    }, [loadStats]),
+      handleLoadStats();
+    }, [handleLoadStats]),
   );
 
   if (loading || !stats) {

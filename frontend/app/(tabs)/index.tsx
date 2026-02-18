@@ -18,21 +18,18 @@ import { storage } from "@/src/utils/storage";
 import { useFocusEffect } from "@react-navigation/native";
 import ProgressRing from "@/src/components/ProgressRing";
 import { StatusBar } from "expo-status-bar";
+import { useTaskStore } from "@/src/store/useTaskStore";
 
 export default function DashboardScreen() {
   const TEST_USER_ID = "user-123";
-  const [currentDatetasks, setcurrentDatetasks] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>({
-    dailyStreak: 0,
-    completionRate: 0,
-  });
+  const { tasks, stats, loading, loadTasks, loadStats, toggleTask, addTask } =
+    useTaskStore();
+
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weather, setWeather] = useState({ temp: 24 });
-  const [loading, setLoading] = useState(true);
   const [isModalVisible, setModalVisible] = useState(false);
-  const [isFetching, setIsFetching] = useState(false);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const isFetchingRef = React.useRef(false);
+
   const weekDays = React.useMemo(() => {
     const days = [];
     for (let i = 6; i >= 0; i--) {
@@ -62,115 +59,52 @@ export default function DashboardScreen() {
   const loadData = React.useCallback(async () => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
-
     try {
-      if (!hasLoadedOnce) setLoading(true);
-
-      const date = selectedDate;
-
-      // 1. Get both Local and Sync promises
-      const [tasksResult, statsResult] = await Promise.all([
-        storage.fetchTasksonCurrentDate(TEST_USER_ID, date),
-        storage.getUserStats(TEST_USER_ID),
-      ]);
-
-      // 2. Optimistically set local data first
-      setcurrentDatetasks(tasksResult.local);
-      setStats(statsResult.local);
-      setLoading(false);
-      setHasLoadedOnce(true);
-
-      // 3. Wait for background sync in parallel
-      const [syncedTasks, syncedStats] = await Promise.all([
-        tasksResult.sync,
-        statsResult.sync,
-      ]);
-
-      // 4. Update state with fresh data only if it returned successfully
-      if (syncedTasks) setcurrentDatetasks(syncedTasks);
-      if (syncedStats) setStats(syncedStats);
+      await Promise.all([loadTasks(TEST_USER_ID), loadStats(TEST_USER_ID)]);
     } catch (e) {
-      console.error("loadData failed", e);
+      console.error("Dashboard loadData failed", e);
     } finally {
       isFetchingRef.current = false;
     }
-  }, [hasLoadedOnce, selectedDate]);
+  }, [loadTasks, loadStats]);
 
   React.useEffect(() => {
     loadData();
-  }, [selectedDate, loadData]);
-
-  // useFocusEffect(
-  //   React.useCallback(() => {
-  //     let isActive = true;
-
-  //     const run = async () => {
-  //       if (!isActive) return;
-  //       await loadData();
-  //     };
-
-  //     run();
-
-  //     return () => {
-  //       isActive = false;
-  //     };
-  //   }, [loadData]),
-  // );
-
-  React.useEffect(() => {
-    loadData();
-  }, []);
+  }, [loadData]);
 
   const handleToggleTask = async (id: string) => {
-    // Optimistic Update
-    const previousTasks = [...currentDatetasks];
-    setcurrentDatetasks((prev) =>
-      prev.map((t) =>
-        t.id === id ? { ...t, isCompleted: !t.isCompleted } : t,
-      ),
-    );
-
     try {
-      await storage.toggleTask(id);
-      // Background re-fetch to ensure stats/other logic stay in sync
-      loadData();
+      await toggleTask(id);
+      loadStats(TEST_USER_ID); // Background refresh stats
     } catch (e) {
       console.error(e);
-      setcurrentDatetasks(previousTasks); // Rollback on hard error
     }
   };
 
   const handleSaveGoal = async (goalData: any) => {
-    // Close modal immediately for UX
     setModalVisible(false);
-
     try {
-      const dateToSave =
-        goalData.scheduledDate instanceof Date
-          ? goalData.scheduledDate
-          : new Date(goalData.scheduledDate);
-
-      // We don't have the ID yet, so we can't fully optimistically append safely
-      // without generating a temp ID. For now, we'll let storage handle it
-      // but keep UI fresh by re-fetching.
-      await storage.addTask(
-        TEST_USER_ID,
-        goalData.title,
-        dateToSave,
-        goalData.scheduledTime,
-        goalData.useNotification,
-      );
-      loadData();
+      await addTask(TEST_USER_ID, goalData);
     } catch (e) {
       console.error(e);
     }
   };
 
-  const completionProgress =
-    currentDatetasks.length > 0
-      ? currentDatetasks.filter((t: any) => t.isCompleted).length /
-        currentDatetasks.length
-      : 0;
+  // Local filtering for daily view
+  const currentDatetasks = React.useMemo(() => {
+    return tasks.filter((t) => {
+      const taskDate = new Date(t.scheduledDate);
+      return taskDate.toDateString() === selectedDate.toDateString();
+    });
+  }, [tasks, selectedDate]);
+
+  const completionProgress = React.useMemo(() => {
+    if (currentDatetasks.length === 0) return 0;
+    return (
+      currentDatetasks.filter((t: any) => t.isCompleted).length /
+      currentDatetasks.length
+    );
+  }, [currentDatetasks]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -201,7 +135,7 @@ export default function DashboardScreen() {
             });
             const dayNum = date.getDate().toString().padStart(2, "0");
 
-            const dayMatch = stats.rollingProgress?.find(
+            const dayMatch = stats?.rollingProgress?.find(
               (p: any) => p.day === dayName,
             );
             const dayRate = dayMatch ? dayMatch.rate : 0;
@@ -267,7 +201,9 @@ export default function DashboardScreen() {
           <View style={styles.streakContent}>
             <View>
               <Text style={styles.streakLabel}>Current Streak</Text>
-              <Text style={styles.streakValue}>{stats.dailyStreak} Days</Text>
+              <Text style={styles.streakValue}>
+                {stats?.dailyStreak || 0} Days
+              </Text>
             </View>
             <View style={styles.ringWrapper}>
               <ProgressRing
@@ -289,14 +225,19 @@ export default function DashboardScreen() {
           <View
             style={[
               styles.insightsProgressBarFill,
-              { width: `${stats.completionRate}%` },
+              { width: `${stats?.completionRate || 0}%` },
             ]}
           />
           <Text style={styles.insightText}>
             You complete{" "}
-            <Text style={styles.insightHighlight}>{stats.completionRate}%</Text>{" "}
+            <Text style={styles.insightHighlight}>
+              {stats?.completionRate || 0}%
+            </Text>{" "}
             tasks overall. Best day:{" "}
-            <Text style={styles.insightHighlight}>{stats.bestDay}</Text>.
+            <Text style={styles.insightHighlight}>
+              {stats?.bestDay || "N/A"}
+            </Text>
+            .
           </Text>
         </View>
         <View style={styles.sectionHeader}>
