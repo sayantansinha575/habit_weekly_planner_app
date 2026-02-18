@@ -19,11 +19,19 @@ import { useFocusEffect } from "@react-navigation/native";
 import ProgressRing from "@/src/components/ProgressRing";
 import { StatusBar } from "expo-status-bar";
 import { useTaskStore } from "@/src/store/useTaskStore";
+import { shallow } from "zustand/shallow";
 
 export default function DashboardScreen() {
   const TEST_USER_ID = "user-123";
-  const { tasks, stats, loading, loadTasks, loadStats, toggleTask, addTask } =
-    useTaskStore();
+  // const { tasks, stats, loading, loadTasks, loadStats, toggleTask, addTask } =
+  //   useTaskStore();
+  const tasks = useTaskStore((state) => state.tasks);
+  const stats = useTaskStore((state) => state.stats);
+  const loading = useTaskStore((state) => state.loading);
+  const loadTasks = useTaskStore((state) => state.loadTasks);
+  const loadStats = useTaskStore((state) => state.loadStats);
+  const toggleTask = useTaskStore((state) => state.toggleTask);
+  const addTask = useTaskStore((state) => state.addTask);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weather, setWeather] = useState({ temp: 24 });

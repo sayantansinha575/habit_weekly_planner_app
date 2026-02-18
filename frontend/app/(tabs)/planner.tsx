@@ -33,15 +33,22 @@ export default function PlannerScreen() {
     Using a fixed ID for development to ensure persistence works across reloads.
   */
   const TEST_USER_ID = "user-123";
-  const {
-    tasks,
-    loading,
-    loadTasks,
-    toggleTask,
-    addTask,
-    updateTask,
-    deleteTasks,
-  } = useTaskStore();
+  // const {
+  //   tasks,
+  //   loading,
+  //   loadTasks,
+  //   toggleTask,
+  //   addTask,
+  //   updateTask,
+  //   deleteTasks,
+  // } = useTaskStore();
+  const tasks = useTaskStore((state) => state.tasks);
+  const loading = useTaskStore((state) => state.loading);
+  const loadTasks = useTaskStore((state) => state.loadTasks);
+  const toggleTask = useTaskStore((state) => state.toggleTask);
+  const addTask = useTaskStore((state) => state.addTask);
+  const updateTask = useTaskStore((state) => state.updateTask);
+  const deleteTasks = useTaskStore((state) => state.deleteTasks);
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
