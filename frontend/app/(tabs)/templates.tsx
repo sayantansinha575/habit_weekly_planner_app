@@ -126,7 +126,13 @@ export default function TemplatesScreen() {
                     <Icon color={color} size={28} />
                   </View>
                   <View style={styles.templateInfo}>
-                    <Text style={styles.templateTitle}>{template.title}</Text>
+                    <Text
+                      style={styles.templateTitle}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {template.title}
+                    </Text>
                     <Text style={styles.templateDescription}>
                       {template.description}
                     </Text>
@@ -149,6 +155,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
+    backgroundColor: "transparent",
   },
   header: {
     marginBottom: 24,
@@ -167,17 +174,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
   templateCard: {
-    padding: 12,
-    // backgroundColor: "rgba(255, 255, 255, 0.75)",
+    padding: 14,
     borderRadius: 20,
-    borderWidth: 1,
-    // borderColor: "rgba(255, 255, 255, 0.5)",
     marginBottom: 16,
-    // shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
-    elevation: 1,
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    elevation: 0,
   },
   iconContainer: {
     flexDirection: "row",

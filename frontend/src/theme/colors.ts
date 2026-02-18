@@ -1,5 +1,5 @@
 export const Colors = {
-  background: "rgb(228, 235, 235)", // Requested rgb(228, 235, 235)
+  // background: "rgb(228, 235, 235)", // Requested rgb(228, 235, 235)
   card: "#FFFFFF", // Requested rgb(255, 255, 255)
   text: "#1D1A23", // Requested #1d1a23
   textMuted: "#6A6A75",
@@ -10,8 +10,8 @@ export const Colors = {
   border: "#D1D9D9", // Slightly darker border to match new background
 
   // glow colors (used by gradient component)
-  glowOrangeStrong: "rgba(255,179,106,0.35)",
-  glowOrangeSoft: "rgba(255,209,163,0.15)",
+  // glowOrangeStrong: "rgba(255,179,106,0.35)",
+  // glowOrangeSoft: "rgba(255,209,163,0.15)",
 };
 
 export const Fonts = {

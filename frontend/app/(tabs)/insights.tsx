@@ -96,9 +96,15 @@ export default function InsightsScreen() {
               size={80}
             />
           </Card>
-          <Card style={styles.statCard}>
+          <Card style={[styles.statCard, { backgroundColor: "#FFF" }]}>
             <Calendar color={Colors.secondary} size={24} />
-            <Text style={styles.statValue}>{stats.bestDay}</Text>
+            <Text
+              style={styles.statValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {stats.bestDay}
+            </Text>
             <Text style={styles.statLabel}>Best Day</Text>
           </Card>
         </View>
@@ -106,7 +112,13 @@ export default function InsightsScreen() {
         <Card style={styles.mainInsight}>
           <View style={styles.insightHeader}>
             <Award color={Colors.accent} size={24} />
-            <Text style={styles.insightTitle}>Consistency King</Text>
+            <Text
+              style={styles.insightTitle}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              Consistency King
+            </Text>
           </View>
           <Text style={styles.insightDescription}>
             “You have a{" "}
@@ -255,13 +267,14 @@ const styles = StyleSheet.create({
     padding: 20,
     // backgroundColor: "rgba(255, 255, 255, 0.75)",
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.5)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
-    elevation: 1,
+    borderWidth: 0,
+    // borderColor: "rgba(255, 255, 255, 0.5)",
+    // shadowColor: "#000",
+    // shadowOffset: { width: 0, height: 4 },
+    // shadowOpacity: 0.02,
+    // shadowRadius: 10,
+    elevation: 0,
+    backgroundColor: "transparent",
   },
   statValue: {
     color: Colors.text,
@@ -281,13 +294,13 @@ const styles = StyleSheet.create({
     // backgroundColor: "rgba(255, 255, 255, 0.75)",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.5)",
+    borderColor: "#FFF",
     padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 1,
+    elevation: 0,
   },
   insightHeader: {
     flexDirection: "row",
@@ -322,12 +335,12 @@ const styles = StyleSheet.create({
     // backgroundColor: "rgba(255, 255, 255, 0.75)",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.5)",
-    shadowColor: "#000",
+    borderColor: "#FFF",
+    shadowColor: "#FFF",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 1,
+    elevation: 0,
   },
   patternHeader: {
     flexDirection: "row",
@@ -382,13 +395,13 @@ const styles = StyleSheet.create({
     paddingBottom: 50,
     // backgroundColor: "rgba(255, 255, 255, 0.75)",
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.5)",
-    shadowColor: "#000",
+    borderWidth: 0,
+    borderColor: "#FFF",
+    shadowColor: "#FFF",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 1,
+    elevation: 0,
   },
   chartContainer: {
     flexDirection: "row",
@@ -408,7 +421,8 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
   barBackground: {
-    width: 28,
+    width: "70%",
+    maxWidth: 32,
     height: 100,
     backgroundColor: "transparent",
     justifyContent: "flex-end",
@@ -424,12 +438,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   rotatedLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: "#5B5B9D",
     fontFamily: Fonts.medium,
     transform: [{ rotate: "-35deg" }],
     textAlign: "right",
-    width: 70,
+    width: 60,
   },
   chartBaseLine: {
     height: 2,
