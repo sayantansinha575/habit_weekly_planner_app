@@ -208,12 +208,14 @@ export default function InsightsScreen() {
           </View>
         </Card>
 
-        <View style={styles.quoteCard}>
-          <Text style={styles.quoteText}>
-            "Discipline is doing what needs to be done, even if you don't want
-            to do it."
-          </Text>
-        </View>
+        <Card style={styles.mainInsight}>
+          <View>
+            <Text style={styles.quoteText}>
+              "Discipline is doing what needs to be done, even if you don't want
+              to do it."
+            </Text>
+          </View>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
@@ -251,15 +253,15 @@ const styles = StyleSheet.create({
     width: "48%",
     alignItems: "center",
     padding: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    // backgroundColor: "rgba(255, 255, 255, 0.75)",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderColor: "rgba(255, 255, 255, 0.5)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 2,
+    elevation: 1,
   },
   statValue: {
     color: Colors.text,
@@ -276,16 +278,16 @@ const styles = StyleSheet.create({
   },
   mainInsight: {
     marginTop: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    // backgroundColor: "rgba(255, 255, 255, 0.75)",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
+    borderColor: "rgba(255, 255, 255, 0.5)",
     padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 2,
+    elevation: 1,
   },
   insightHeader: {
     flexDirection: "row",
@@ -317,15 +319,15 @@ const styles = StyleSheet.create({
   },
   patternCard: {
     padding: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    // backgroundColor: "rgba(255, 255, 255, 0.75)",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderColor: "rgba(255, 255, 255, 0.5)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 2,
+    elevation: 1,
   },
   patternHeader: {
     flexDirection: "row",
@@ -357,15 +359,15 @@ const styles = StyleSheet.create({
     marginTop: 40,
     padding: 24,
     borderRadius: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
+    // borderLeftWidth: 4,
+    // borderLeftColor: Colors.primary,
+    // backgroundColor: "rgba(255, 255, 255, 0.5)",
+    // borderWidth: 1,
+    // borderColor: "rgba(255, 255, 255, 0.2)",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
+    // shadowOffset: { width: 0, height: 4 },
+    // shadowOpacity: 0.02,
+    // shadowRadius: 10,
     elevation: 2,
   },
   quoteText: {
@@ -378,15 +380,15 @@ const styles = StyleSheet.create({
   chartCard: {
     padding: 24,
     paddingBottom: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    // backgroundColor: "rgba(255, 255, 255, 0.75)",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderColor: "rgba(255, 255, 255, 0.5)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
     shadowRadius: 10,
-    elevation: 2,
+    elevation: 1,
   },
   chartContainer: {
     flexDirection: "row",

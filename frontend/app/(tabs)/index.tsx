@@ -188,6 +188,8 @@ export default function DashboardScreen() {
                     styles.dayNameText,
                     isSelected && styles.selectedDayText,
                   ]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
                 >
                   {dayName}
                 </Text>
@@ -479,11 +481,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   dayItem: {
+    flex: 1,
     alignItems: "center",
     paddingVertical: 12,
-    paddingHorizontal: 8,
     borderRadius: 20,
-    minWidth: 45,
   },
   selectedDayItem: {
     backgroundColor: "rgba(255, 255, 255, 0.95)",

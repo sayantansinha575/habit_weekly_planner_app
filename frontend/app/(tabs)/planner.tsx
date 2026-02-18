@@ -46,6 +46,17 @@ export default function PlannerScreen() {
     new Set(),
   );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const weekDays = React.useMemo(() => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      days.push(date);
+    }
+    return days;
+  }, []);
   const loadTasks = React.useCallback(async () => {
     if (isFetchingTasksRef.current) return;
 
@@ -208,18 +219,60 @@ export default function PlannerScreen() {
         colors={["#E3F2FD", "#F3E5F5", "#FCE4EC"]}
         style={StyleSheet.absoluteFill}
       />
-      {/* <View style={styles.calendarHeader}>
-        <TouchableOpacity>
-          <ChevronLeft color={Colors.text} size={24} />
-        </TouchableOpacity>
-        <View style={styles.dateInfo}>
-          <Text style={styles.dayText}>Monday</Text>
-          <Text style={styles.dateText}>Feb 3, 2026</Text>
-        </View>
-        <TouchableOpacity>
-          <ChevronRight color={Colors.text} size={24} />
-        </TouchableOpacity>
-      </View> */}
+      <View style={styles.calendarContainer}>
+        {weekDays.map((date, index) => {
+          const isSelected =
+            date.toDateString() === selectedDate.toDateString();
+          const dayName = date.toLocaleDateString("en-US", {
+            weekday: "short",
+          });
+          const dayNum = date.getDate().toString().padStart(2, "0");
+
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.dayItem,
+                isSelected && styles.selectedDayItem,
+                // Add a small margin to separate items on very narrow screens
+                { marginHorizontal: 2 },
+              ]}
+              onPress={() => setSelectedDate(date)}
+            >
+              <Text
+                style={[
+                  styles.dayNameText,
+                  isSelected && styles.selectedDayText,
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {dayName}
+              </Text>
+
+              <View style={styles.dayProgressContainer}>
+                <View
+                  style={[
+                    styles.dayCircle,
+                    isSelected
+                      ? styles.selectedDayCircle
+                      : styles.dashedDayCircle,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.dayNumText,
+                      isSelected && styles.selectedDayTextItalic,
+                    ]}
+                  >
+                    {dayNum}
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.statsRow}>
@@ -258,11 +311,7 @@ export default function PlannerScreen() {
                 onPress={() => setIsMenuOpen(true)}
                 style={styles.menuBtn}
               >
-                <MoreVertical
-                  style={styles.menuBtnEditbutton}
-                  color={Colors.textMuted}
-                  size={20}
-                />
+                <MoreVertical color={Colors.textMuted} size={20} />
               </TouchableOpacity>
             )}
           </View>
@@ -401,21 +450,22 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
+    backgroundColor: "transparent",
   },
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-around",
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    // backgroundColor: "rgba(255, 255, 255, 0.75)",
     borderRadius: 20,
     padding: 20,
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
-    elevation: 2,
+    // borderWidth: 1,
+    // borderColor: "rgba(255, 255, 255, 0.5)",
+    // shadowColor: "#000",
+    // shadowOffset: { width: 0, height: 4 },
+    // shadowOpacity: 0.02,
+    // shadowRadius: 10,
+    // elevation: 1,
   },
   statItem: {
     alignItems: "center",
@@ -446,12 +496,13 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   sectionTitleRow: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
   menuBtn: {
-    marginLeft: 8,
-    padding: 4,
+    padding: 8,
   },
   editActions: {
     flexDirection: "row",
@@ -495,7 +546,7 @@ const styles = StyleSheet.create({
   },
   dropdownMenu: {
     position: "absolute",
-    top: 360, // Rough position, ideally we'd use layout measurements
+    top: 340, // More neutral position
     right: 20,
     backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: 12,
@@ -540,7 +591,74 @@ const styles = StyleSheet.create({
   },
 
   menuBtnEditbutton: {
-    marginLeft: 260,
     padding: 4,
+  },
+  calendarContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+    paddingHorizontal: 14,
+    marginTop: 40,
+  },
+  dayItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  selectedDayItem: {
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    elevation: 6,
+    shadowColor: "rgba(0,0,0,0.1)",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+  },
+  dayNameText: {
+    fontSize: 12,
+    color: "#1D1A23",
+    fontWeight: "600",
+    fontFamily: Fonts.semiBold,
+    marginBottom: 8,
+  },
+  selectedDayText: {
+    color: "#000",
+  },
+  selectedDayTextItalic: {
+    color: "#000",
+    fontStyle: "italic",
+    fontFamily: Fonts.bold,
+  },
+  dayProgressContainer: {
+    width: 36,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  dayCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "transparent",
+    zIndex: 2,
+  },
+  selectedDayCircle: {
+    borderWidth: 1.5,
+    borderColor: "#000",
+  },
+  dashedDayCircle: {
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderStyle: "dashed",
+  },
+  dayNumText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.text,
+    fontFamily: Fonts.bold,
   },
 });
