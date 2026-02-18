@@ -21,23 +21,34 @@ export default function InsightsScreen() {
   const [stats, setStats] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = React.useState(false);
-  const [isFetching, setIsFetching] = React.useState(false);
+  const isFetchingRef = React.useRef(false);
 
   const loadStats = React.useCallback(async () => {
-    if (isFetching) return;
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
     try {
       if (!hasLoadedOnce) setLoading(true);
-      setIsFetching(true);
-      const data = await storage.getUserStats(TEST_USER_ID);
-      setStats(data);
-      setHasLoadedOnce(true);
-    } catch (e) {
-      console.error(e);
-    } finally {
+
+      // 1. Get both Local and Sync promises
+      const statsResult = await storage.getUserStats(TEST_USER_ID);
+
+      // 2. Optimistically set local data first
+      setStats(statsResult.local);
       setLoading(false);
-      setIsFetching(false);
+      setHasLoadedOnce(true);
+
+      // 3. Wait for background sync
+      const syncedStats = await statsResult.sync;
+
+      // 4. Update state with fresh data
+      if (syncedStats) setStats(syncedStats);
+    } catch (e) {
+      console.error("loadStats failed", e);
+    } finally {
+      isFetchingRef.current = false;
     }
-  }, [hasLoadedOnce, isFetching]);
+  }, [hasLoadedOnce]);
 
   useFocusEffect(
     React.useCallback(() => {

@@ -8,44 +8,53 @@ export const storage = {
   // Load tasks: API -> Local Fallback
   fetchTasks: async (userId: string) => {
     try {
-      console.log("Fetching tasks from backend...");
-      // Convert date to YYYY-MM-DD for API
-      // const dateStr = date.toISOString();
-      const remoteTasks = await api.getTasks(userId);
+      const fetchAndSave = async () => {
+        try {
+          const remoteTasks = await api.getTasks(userId);
+          await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(remoteTasks));
+          return remoteTasks;
+        } catch (e) {
+          console.warn("Background fetch tasks failed", e);
+          return [];
+        }
+      };
 
-      // Save to local storage for offline use (replacing current cache for this view)
-      // Note: In a real app, you'd merge or use a proper DB.
-      // For now, we just cache the latest fetch.
-      await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(remoteTasks));
-
-      return remoteTasks;
+      const local = await storage.getLocalTasks();
+      return {
+        local,
+        sync: fetchAndSave(),
+      };
     } catch (e) {
-      console.warn("Backend fetch failed, loading from local storage", e);
-      const jsonValue = await AsyncStorage.getItem(TASKS_KEY);
-      return jsonValue != null ? JSON.parse(jsonValue) : [];
+      console.warn("fetchTasks failed", e);
+      return { local: [], sync: Promise.resolve([]) };
     }
   },
 
   fetchTasksonCurrentDate: async (userId: string, date: Date) => {
     try {
-      console.log("Fetching Current date tasks from backend...");
-      // Convert date to YYYY-MM-DD for API
-      const dateStr = date.toISOString();
-      const remoteTasks = await api.getTasksonCurrentDate(userId, dateStr);
+      // Background sync
+      const fetchAndSave = async () => {
+        try {
+          const dateStr = date.toISOString();
+          const remoteTasks = await api.getTasksonCurrentDate(userId, dateStr);
+          await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(remoteTasks));
+          return remoteTasks;
+        } catch (e) {
+          console.warn("Background fetch failed", e);
+        }
+      };
 
-      // Save to local storage for offline use (replacing current cache for this view)
-      // Note: In a real app, you'd merge or use a proper DB.
-      // For now, we just cache the latest fetch.
-      await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(remoteTasks));
-
-      return remoteTasks;
+      // Return local first if available
+      const local = await storage.getLocalTasks();
+      // Only return local if it contains tasks or if we want to show empty state immediately
+      // But for "current date", we might want to trigger the sync in parallel
+      return {
+        local,
+        sync: fetchAndSave(),
+      };
     } catch (e) {
-      console.warn(
-        "Backend fetch failed Current date Task, loading from local storage",
-        e,
-      );
-      const jsonValue = await AsyncStorage.getItem(TASKS_KEY);
-      return jsonValue != null ? JSON.parse(jsonValue) : [];
+      console.warn("fetchTasksonCurrentDate failed", e);
+      return { local: [], sync: Promise.resolve([]) };
     }
   },
 
@@ -157,19 +166,42 @@ export const storage = {
 
   getUserStats: async (userId: string) => {
     try {
-      const stats = await api.getUserStats(userId);
-      await AsyncStorage.setItem(`@stats_${userId}`, JSON.stringify(stats));
-      return stats;
-    } catch (e) {
+      const fetchAndSave = async () => {
+        try {
+          const stats = await api.getUserStats(userId);
+          await AsyncStorage.setItem(`@stats_${userId}`, JSON.stringify(stats));
+          return stats;
+        } catch (e) {
+          console.warn("Background fetch stats failed", e);
+          return null;
+        }
+      };
+
       const jsonValue = await AsyncStorage.getItem(`@stats_${userId}`);
-      return jsonValue != null
-        ? JSON.parse(jsonValue)
-        : {
-            dailyStreak: 0,
-            weeklyStreak: 0,
-            completionRate: 0,
-            bestDay: "N/A",
-          };
+      const local =
+        jsonValue != null
+          ? JSON.parse(jsonValue)
+          : {
+              dailyStreak: 0,
+              weeklyStreak: 0,
+              completionRate: 0,
+              bestDay: "N/A",
+            };
+
+      return {
+        local,
+        sync: fetchAndSave(),
+      };
+    } catch (e) {
+      return {
+        local: {
+          dailyStreak: 0,
+          weeklyStreak: 0,
+          completionRate: 0,
+          bestDay: "N/A",
+        },
+        sync: Promise.resolve(null),
+      };
     }
   },
 
@@ -187,16 +219,16 @@ export const storage = {
   applyTemplate: async (userId: string, templateId: string) => {
     try {
       await api.applyTemplate(userId, templateId);
-      // 2. Re-fetch to get tasks and schedule notifications
-      const remoteTasks = await storage.fetchTasksonCurrentDate(
-        userId,
-        new Date(),
-      );
+      // 2. Re-fetch synchronously to ensure we have the data for notifications
+      const dateStr = new Date().toISOString();
+      const remoteTasks = await api.getTasksonCurrentDate(userId, dateStr);
+      await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(remoteTasks));
+
       // 3. Notifications
       remoteTasks.forEach((t: any) =>
         notificationUtils.scheduleTaskNotification(t),
       );
-      return true;
+      return remoteTasks;
     } catch (e) {
       console.error("Failed to apply template", e);
       throw e;

@@ -59,85 +59,78 @@ export default function PlannerScreen() {
   }, []);
   const loadTasks = React.useCallback(async () => {
     if (isFetchingTasksRef.current) return;
-
     isFetchingTasksRef.current = true;
 
     try {
       if (!hasLoadedTasksOnce) setLoading(true);
 
-      const data = await storage.fetchTasks(TEST_USER_ID);
-      setTasks(data);
+      // 1. Get both Local and Sync promises for ALL tasks
+      const tasksResult = await storage.fetchTasks(TEST_USER_ID);
+
+      // 2. Optimistically set local data first
+      setTasks(tasksResult.local);
+      setLoading(false);
       setHasLoadedTasksOnce(true);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      if (!hasLoadedTasksOnce) {
-        setLoading(false);
+      const syncedTasks = await tasksResult.sync;
+
+      if (syncedTasks && isFetchingTasksRef.current) {
+        setTasks(syncedTasks);
       }
+    } catch (e) {
+      console.error("loadTasks failed", e);
+    } finally {
       isFetchingTasksRef.current = false;
     }
   }, [hasLoadedTasksOnce]);
-  useFocusEffect(
-    React.useCallback(() => {
-      let isActive = true;
 
-      const run = async () => {
-        if (!isActive) return;
-        await loadTasks();
-      };
+  React.useEffect(() => {
+    loadTasks();
+  }, []);
 
-      run();
+  const handleToggleTask = async (taskId: string) => {
+    const previousTasks = [...tasks];
 
-      return () => {
-        isActive = false;
-      };
-    }, [loadTasks]),
-  );
-
-  const handleToggleTask = async (id: string) => {
-    let previousTasks: any[] = [];
-
-    setTasks((prev) => {
-      previousTasks = prev;
-      return prev.map((t) =>
-        t.id === id ? { ...t, isCompleted: !t.isCompleted } : t,
-      );
-    });
+    // 1️⃣ Optimistic update
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId ? { ...t, isCompleted: !t.isCompleted } : t,
+      ),
+    );
 
     try {
-      await storage.toggleTask(id);
+      await storage.toggleTask(taskId);
+      // ❌ DO NOT call loadTasks()
     } catch (e) {
-      setTasks(previousTasks);
+      console.error(e);
+      setTasks(previousTasks); // rollback
     }
   };
 
   const handleSaveGoal = async (goalData: any) => {
+    setModalVisible(false);
+
+    const dateToSave =
+      goalData.scheduledDate instanceof Date
+        ? goalData.scheduledDate
+        : new Date(goalData.scheduledDate);
+
     try {
       if (selectedTask) {
-        // Editing existing task
-        const dateToSave =
-          goalData.scheduledDate instanceof Date
-            ? goalData.scheduledDate
-            : new Date(goalData.scheduledDate);
+        // Optimistic update
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === selectedTask.id ? { ...t, ...goalData } : t,
+          ),
+        );
 
-        const updatedTask = await storage.updateTask(
-          goalData.id,
+        await storage.updateTask(
+          selectedTask.id,
           goalData.title,
           dateToSave,
           goalData.scheduledTime,
           goalData.useNotification,
         );
-
-        setTasks((prev) =>
-          prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)),
-        );
       } else {
-        // Adding new task
-        const dateToSave =
-          goalData.scheduledDate instanceof Date
-            ? goalData.scheduledDate
-            : new Date(goalData.scheduledDate);
-
         const newTask = await storage.addTask(
           TEST_USER_ID,
           goalData.title,
@@ -146,10 +139,13 @@ export default function PlannerScreen() {
           goalData.useNotification,
         );
 
+        // Optimistic insert
         setTasks((prev) => [...prev, newTask]);
       }
 
-      setModalVisible(false);
+      setSelectedTask(null);
+
+      // ❌ DO NOT call loadTasks()
     } catch (e) {
       console.error(e);
     }

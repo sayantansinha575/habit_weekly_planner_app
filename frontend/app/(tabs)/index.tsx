@@ -61,7 +61,6 @@ export default function DashboardScreen() {
 
   const loadData = React.useCallback(async () => {
     if (isFetchingRef.current) return;
-
     isFetchingRef.current = true;
 
     try {
@@ -69,20 +68,30 @@ export default function DashboardScreen() {
 
       const date = selectedDate;
 
-      const [tasksData, statsData] = await Promise.all([
+      // 1. Get both Local and Sync promises
+      const [tasksResult, statsResult] = await Promise.all([
         storage.fetchTasksonCurrentDate(TEST_USER_ID, date),
         storage.getUserStats(TEST_USER_ID),
       ]);
 
-      setcurrentDatetasks(tasksData);
-      setStats(statsData);
+      // 2. Optimistically set local data first
+      setcurrentDatetasks(tasksResult.local);
+      setStats(statsResult.local);
+      setLoading(false);
       setHasLoadedOnce(true);
+
+      // 3. Wait for background sync in parallel
+      const [syncedTasks, syncedStats] = await Promise.all([
+        tasksResult.sync,
+        statsResult.sync,
+      ]);
+
+      // 4. Update state with fresh data only if it returned successfully
+      if (syncedTasks) setcurrentDatetasks(syncedTasks);
+      if (syncedStats) setStats(syncedStats);
     } catch (e) {
-      console.error(e);
+      console.error("loadData failed", e);
     } finally {
-      if (!hasLoadedOnce) {
-        setLoading(false);
-      }
       isFetchingRef.current = false;
     }
   }, [hasLoadedOnce, selectedDate]);
@@ -91,38 +100,59 @@ export default function DashboardScreen() {
     loadData();
   }, [selectedDate, loadData]);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      let isActive = true;
+  // useFocusEffect(
+  //   React.useCallback(() => {
+  //     let isActive = true;
 
-      const run = async () => {
-        if (!isActive) return;
-        await loadData();
-      };
+  //     const run = async () => {
+  //       if (!isActive) return;
+  //       await loadData();
+  //     };
 
-      run();
+  //     run();
 
-      return () => {
-        isActive = false;
-      };
-    }, [loadData]),
-  );
+  //     return () => {
+  //       isActive = false;
+  //     };
+  //   }, [loadData]),
+  // );
+
+  React.useEffect(() => {
+    loadData();
+  }, []);
 
   const handleToggleTask = async (id: string) => {
+    // Optimistic Update
+    const previousTasks = [...currentDatetasks];
+    setcurrentDatetasks((prev) =>
+      prev.map((t) =>
+        t.id === id ? { ...t, isCompleted: !t.isCompleted } : t,
+      ),
+    );
+
     try {
       await storage.toggleTask(id);
+      // Background re-fetch to ensure stats/other logic stay in sync
       loadData();
     } catch (e) {
       console.error(e);
+      setcurrentDatetasks(previousTasks); // Rollback on hard error
     }
   };
 
   const handleSaveGoal = async (goalData: any) => {
+    // Close modal immediately for UX
+    setModalVisible(false);
+
     try {
       const dateToSave =
         goalData.scheduledDate instanceof Date
           ? goalData.scheduledDate
           : new Date(goalData.scheduledDate);
+
+      // We don't have the ID yet, so we can't fully optimistically append safely
+      // without generating a temp ID. For now, we'll let storage handle it
+      // but keep UI fresh by re-fetching.
       await storage.addTask(
         TEST_USER_ID,
         goalData.title,
@@ -130,7 +160,6 @@ export default function DashboardScreen() {
         goalData.scheduledTime,
         goalData.useNotification,
       );
-      setModalVisible(false);
       loadData();
     } catch (e) {
       console.error(e);
