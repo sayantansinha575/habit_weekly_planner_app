@@ -135,7 +135,7 @@ cron.schedule("0 7 * * *", async () => {
 // });
 
 // Auto-rollover at midnight
-cron.schedule("0 0 * * *", async () => {
-  console.log("Running auto-rollover...");
-  await rolloverTasks();
-});
+// cron.schedule("0 0 * * *", async () => {
+//   console.log("Running auto-rollover...");
+//   await rolloverTasks();
+// });

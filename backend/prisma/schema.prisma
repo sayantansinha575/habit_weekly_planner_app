@@ -8,22 +8,25 @@ generator client {
 
 model User {
   id              String  @id @default(uuid())
+  supabaseId      String? @unique
   email           String  @unique
-  passwordHash    String
+  passwordHash    String? // Made optional for OAuth users
   whatsappNumber  String?
   username        String?
   profilePhotoUrl String?
 
   // Stats
-  dailyStreak       Int      @default(0)
-  weeklyStreak      Int      @default(0)
-  streakFreezeCount Int      @default(0)
-  lastActiveAt      DateTime @default(now())
+  dailyStreak       Int?      @default(0)
+  weeklyStreak      Int?     @default(0)
+  streakFreezeCount Int?      @default(0)
+  lastActiveAt      DateTime? @default(now())
 
   // Subscription
-  subscriptionStatus  SubscriptionStatus @default(FREE)
-  trialStartDate      DateTime?
-  subscriptionEndDate DateTime?
+  subscriptionStatus   SubscriptionStatus @default(FREE)
+  subscriptionPlatform String?            // "android" | "ios"
+  trialStartDate       DateTime?
+  subscriptionEndDate  DateTime?
+  subscriptionStartedAt DateTime? 
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

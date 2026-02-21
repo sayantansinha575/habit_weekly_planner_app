@@ -1,8 +1,13 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
 
-import { register, login } from "./auth";
+import { register, login, upsertSupabaseUser } from "./auth";
+import {
+  verifySupabaseToken,
+  AuthenticatedRequest,
+} from "./middleware/authMiddleware";
 import {
   createTask,
   completeTask,
@@ -56,8 +61,33 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Task Routes
-app.post("/tasks", async (req, res) => {
+app.post(
+  "/auth/supabase",
+  verifySupabaseToken,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      if (!req.user) throw new Error("User info missing from token");
+
+      const user = await upsertSupabaseUser(
+        req.user.email,
+        req.user.supabaseId,
+      );
+
+      // Create an app-specific JWT (optional, but requested by user)
+      const token = jwt.sign(
+        { userId: user.id },
+        process.env.JWT_SECRET || "your_secret_key",
+      );
+
+      res.json({ user, token });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+);
+
+// Task Routes (Protected)
+app.post("/tasks", verifySupabaseToken, async (req, res) => {
   const { userId, title, scheduledDate, scheduledTime, isNotificationEnabled } =
     req.body;
   const task = await createTask(
@@ -71,7 +101,7 @@ app.post("/tasks", async (req, res) => {
   console.log("Task created:", task);
 });
 
-app.get("/templates", async (req, res) => {
+app.get("/templates", verifySupabaseToken, async (req, res) => {
   try {
     const templates = await getTemplates();
     res.json(templates);
@@ -80,10 +110,11 @@ app.get("/templates", async (req, res) => {
   }
 });
 
-app.post("/templates/:id/apply", async (req, res) => {
+app.post("/templates/:id/apply", verifySupabaseToken, async (req, res) => {
   try {
     const { userId } = req.body;
-    const result = await applyTemplate(userId, req.params.id);
+    const templateId = req.params.id as string;
+    const result = await applyTemplate(userId, templateId);
     res.json(result);
   } catch (e: any) {
     res.status(500).json({ error: e.message });
@@ -126,9 +157,10 @@ app.delete("/tasks", async (req, res) => {
   }
 });
 
-app.get("/users/:id/stats", async (req, res) => {
+app.get("/users/:id/stats", verifySupabaseToken, async (req, res) => {
   try {
-    const stats = await getUserStats(req.params.id);
+    const userId = req.params.id as string;
+    const stats = await getUserStats(userId);
     res.json(stats);
   } catch (e: any) {
     res.status(500).json({ error: e.message });
@@ -179,8 +211,8 @@ setInterval(
   6 * 60 * 60 * 1000,
 );
 
-// Cal AI Routes
-app.get("/api/cal-ai/profile", async (req, res) => {
+// Cal AI Routes (Protected)
+app.get("/api/cal-ai/profile", verifySupabaseToken, async (req, res) => {
   try {
     const userId = req.query.userId as string;
     const profile = await getCalAiProfile(userId);
