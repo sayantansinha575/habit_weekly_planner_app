@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { storage } from "../utils/storage";
 import { notificationUtils } from "../utils/notifications";
+import { api } from "../services/api";
+import { iapService } from "../services/iapService";
+import { authService } from "../services/authService";
 
 interface Task {
   id: string;
@@ -29,7 +32,18 @@ interface TaskState {
   loading: boolean;
   isSyncing: boolean;
 
+  subscriptionStatus: "FREE" | "TRIAL" | "PREMIUM";
+  user: any;
+  session: any;
+  isAuthReady: boolean;
+  isAuthenticating: boolean;
+
   // Actions
+  setIsAuthenticating: (isAuthenticating: boolean) => void;
+  setIsAuthReady: (ready: boolean) => void;
+  setSession: (session: any) => Promise<void>;
+  checkTrialStatus: () => "valid" | "expired";
+  signOut: () => Promise<void>;
   loadTasks: (userId: string) => Promise<void>;
   loadStats: (userId: string) => Promise<void>;
   addTask: (userId: string, taskData: any) => Promise<void>;
@@ -44,6 +58,69 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   stats: null,
   loading: false,
   isSyncing: false,
+  subscriptionStatus: "FREE",
+  user: null,
+  session: null,
+  isAuthReady: false,
+  isAuthenticating: false,
+
+  setIsAuthenticating: (isAuthenticating) => set({ isAuthenticating }),
+  setIsAuthReady: (ready) => set({ isAuthReady: ready }),
+
+  setSession: async (session) => {
+    // If no session, we are ready (logged out)
+    if (!session) {
+      set({
+        session: null,
+        user: null,
+        subscriptionStatus: "FREE",
+        isAuthReady: true,
+        isAuthenticating: false,
+      });
+      return;
+    }
+
+    set({ session });
+
+    // Verify with backend
+    try {
+      const { user } = await api.verifySupabaseAuth(session.access_token);
+      console.log("User verified:", user);
+      set({
+        user,
+        subscriptionStatus: user.subscriptionStatus,
+        isAuthReady: true,
+        isAuthenticating: false,
+      });
+
+      // Configure RevenueCat
+      iapService.configure(user.id);
+    } catch (e) {
+      console.error("Session verification failed", e);
+      // Even if sync fails, we are "ready" but effectively logged out or in error state
+      set({ isAuthReady: true, isAuthenticating: false });
+    }
+  },
+
+  checkTrialStatus: () => {
+    const { user } = get();
+    if (!user || user.subscriptionStatus !== "TRIAL") return "valid";
+
+    const now = new Date();
+    const expiry = new Date(user.subscriptionEndDate);
+    return now > expiry ? "expired" : "valid";
+  },
+
+  signOut: async () => {
+    await authService.signOut();
+    set({
+      session: null,
+      user: null,
+      subscriptionStatus: "FREE",
+      tasks: [],
+      stats: null,
+    });
+  },
 
   loadTasks: async (userId) => {
     set({ loading: true });
@@ -131,7 +208,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       await storage.toggleTask(taskId);
       // Auto-refresh stats in background
-      get().loadStats("user-123");
+      const user = get().user;
+      if (user) await get().loadStats(user.id);
 
       // Update notification state
       const task = get().tasks.find((t) => t.id === taskId);
@@ -173,7 +251,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }));
 
       // Auto-refresh stats
-      get().loadStats("user-123");
+      const user = get().user;
+      if (user) await get().loadStats(user.id);
 
       // Update notification
       notificationUtils.scheduleTaskNotification(updatedTask);
@@ -194,7 +273,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       await storage.deleteTasks(taskIds);
       // Auto-refresh stats
-      get().loadStats("user-123");
+      const user = get().user;
+      if (user) await get().loadStats(user.id);
       // Notifications are cancelled inside storage.deleteTasks, but we reinforce
       taskIds.forEach((id) => notificationUtils.cancelTaskNotification(id));
     } catch (e) {

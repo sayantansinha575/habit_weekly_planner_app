@@ -1,32 +1,22 @@
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
 
 export const upsertSupabaseUser = async (email: string, supabaseId: string) => {
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
-
-  if (user) {
-    // Update existing user with supabaseId if not set
-    if (!user.supabaseId) {
-      return prisma.user.update({
-        where: { id: user.id },
-        data: { supabaseId },
-      });
-    }
-    return user;
-  }
-
-  // New User - Start 7-day trial
   const trialStartDate = new Date();
   const subscriptionEndDate = new Date();
   subscriptionEndDate.setDate(trialStartDate.getDate() + 7);
 
-  return prisma.user.create({
-    data: {
+  return prisma.user.upsert({
+    where: { email },
+    update: {
+      supabaseId,
+    },
+    create: {
       email,
       supabaseId,
       subscriptionStatus: "TRIAL",

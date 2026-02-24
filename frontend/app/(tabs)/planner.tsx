@@ -28,20 +28,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Alert, TouchableWithoutFeedback, Modal } from "react-native";
 
 export default function PlannerScreen() {
-  /* 
-    TODO: Integrate with real Auth Context. 
-    Using a fixed ID for development to ensure persistence works across reloads.
-  */
-  const TEST_USER_ID = "user-123";
-  // const {
-  //   tasks,
-  //   loading,
-  //   loadTasks,
-  //   toggleTask,
-  //   addTask,
-  //   updateTask,
-  //   deleteTasks,
-  // } = useTaskStore();
+  const user = useTaskStore((state) => state.user);
   const tasks = useTaskStore((state) => state.tasks);
   const loading = useTaskStore((state) => state.loading);
   const loadTasks = useTaskStore((state) => state.loadTasks);
@@ -71,16 +58,16 @@ export default function PlannerScreen() {
     return days;
   }, []);
   const handleLoadTasks = React.useCallback(async () => {
-    if (isFetchingTasksRef.current) return;
+    if (isFetchingTasksRef.current || !user?.id) return;
     isFetchingTasksRef.current = true;
     try {
-      await loadTasks(TEST_USER_ID);
+      await loadTasks(user.id);
     } catch (e) {
       console.error("Planner loadTasks failed", e);
     } finally {
       isFetchingTasksRef.current = false;
     }
-  }, [loadTasks]);
+  }, [loadTasks, user?.id]);
 
   React.useEffect(() => {
     handleLoadTasks();
@@ -96,12 +83,13 @@ export default function PlannerScreen() {
   };
 
   const handleSaveGoal = async (goalData: any) => {
+    if (!user?.id) return;
     setModalVisible(false);
     try {
       if (selectedTask) {
         await updateTask(selectedTask.id, goalData);
       } else {
-        await addTask(TEST_USER_ID, goalData);
+        await addTask(user.id, goalData);
       }
       setSelectedTask(null);
     } catch (e) {

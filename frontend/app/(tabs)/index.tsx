@@ -22,9 +22,7 @@ import { useTaskStore } from "@/src/store/useTaskStore";
 import { shallow } from "zustand/shallow";
 
 export default function DashboardScreen() {
-  const TEST_USER_ID = "user-123";
-  // const { tasks, stats, loading, loadTasks, loadStats, toggleTask, addTask } =
-  //   useTaskStore();
+  const user = useTaskStore((state) => state.user);
   const tasks = useTaskStore((state) => state.tasks);
   const stats = useTaskStore((state) => state.stats);
   const loading = useTaskStore((state) => state.loading);
@@ -65,34 +63,36 @@ export default function DashboardScreen() {
   };
 
   const loadData = React.useCallback(async () => {
-    if (isFetchingRef.current) return;
+    if (isFetchingRef.current || !user?.id) return;
     isFetchingRef.current = true;
     try {
-      await Promise.all([loadTasks(TEST_USER_ID), loadStats(TEST_USER_ID)]);
+      await Promise.all([loadTasks(user.id), loadStats(user.id)]);
     } catch (e) {
       console.error("Dashboard loadData failed", e);
     } finally {
       isFetchingRef.current = false;
     }
-  }, [loadTasks, loadStats]);
+  }, [loadTasks, loadStats, user?.id]);
 
   React.useEffect(() => {
     loadData();
   }, [loadData]);
 
   const handleToggleTask = async (id: string) => {
+    if (!user?.id) return;
     try {
       await toggleTask(id);
-      loadStats(TEST_USER_ID); // Background refresh stats
+      loadStats(user.id); // Background refresh stats
     } catch (e) {
       console.error(e);
     }
   };
 
   const handleSaveGoal = async (goalData: any) => {
+    if (!user?.id) return;
     setModalVisible(false);
     try {
-      await addTask(TEST_USER_ID, goalData);
+      await addTask(user.id, goalData);
     } catch (e) {
       console.error(e);
     }

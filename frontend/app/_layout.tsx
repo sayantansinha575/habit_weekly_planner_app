@@ -3,7 +3,7 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { Stack } from "expo-router";
+import { Slot } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import * as SplashScreen from "expo-splash-screen";
@@ -17,6 +17,9 @@ import {
 } from "@expo-google-fonts/outfit";
 import { notificationUtils } from "@/src/utils/notifications";
 import * as Notifications from "expo-notifications";
+import { supabase } from "@/src/services/supabase";
+import { useTaskStore } from "@/src/store/useTaskStore";
+import { authService } from "@/src/services/authService";
 
 // Handle notifications when the app is in foreground
 Notifications.setNotificationHandler({
@@ -33,11 +36,12 @@ export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
-// Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const setSession = useTaskStore((state) => state.setSession);
+  const setIsAuthReady = useTaskStore((state) => state.setIsAuthReady);
 
   const [loaded, error] = useFonts({
     Outfit_400Regular,
@@ -46,6 +50,46 @@ export default function RootLayout() {
     Outfit_700Bold,
   });
 
+  // useEffect(() => {
+  //   // 1. Initial Session Check
+  //   supabase.auth.getSession().then(({ data: { session } }) => {
+  //     setSession(session).finally(() => {
+  //       setIsAuthReady(true);
+  //     });
+  //   });
+
+  //   // 2. Auth State Listener
+  //   const {
+  //     data: { subscription },
+  //   } = supabase.auth.onAuthStateChange((_event, session) => {
+  //     setSession(session).finally(() => {
+  //       setIsAuthReady(true);
+  //     });
+  //   });
+
+  //   return () => subscription.unsubscribe();
+  // }, []);
+
+  useEffect(() => {
+    // 1. Initial Session Check (Standard Supabase)
+    const init = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      await setSession(session);
+    };
+
+    init();
+
+    // 2. Auth State Listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      await setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
   useEffect(() => {
     if (loaded || error) {
       SplashScreen.hideAsync();
@@ -54,18 +98,13 @@ export default function RootLayout() {
   }, [loaded, error]);
 
   if (!loaded && !error) {
-    return null;
+    // Keep rendering Slot to prevent navigation errors,
+    // SplashScreen hides only in the useEffect above.
   }
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
-      </Stack>
+      <Slot />
       <StatusBar style="auto" />
     </ThemeProvider>
   );

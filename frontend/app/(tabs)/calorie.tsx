@@ -42,9 +42,10 @@ import CalorieProgress from "@/src/components/CalorieProgress";
 const { width } = Dimensions.get("window");
 
 type ViewState = "dashboard" | "onboarding" | "profile" | "add-meal";
+import { useTaskStore } from "@/src/store/useTaskStore";
 
 export default function CalorieScreen() {
-  const TEST_USER_ID = "user-123";
+  const user = useTaskStore((state) => state.user);
   const [currentView, setCurrentView] = useState<ViewState>("dashboard");
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
@@ -135,9 +136,10 @@ export default function CalorieScreen() {
   );
 
   const init = useCallback(async () => {
+    if (!user?.id) return;
     try {
       setLoading(true);
-      const profileData = await api.getCalAiProfile(TEST_USER_ID);
+      const profileData = await api.getCalAiProfile(user.id);
       if (profileData) {
         setProfile(profileData);
         setFormData({
@@ -150,9 +152,9 @@ export default function CalorieScreen() {
           gender: profileData.gender,
           dailyStepGoal: profileData.dailyStepGoal.toString(),
         });
-        const dashData = await api.getCalAiDashboard(TEST_USER_ID);
+        const dashData = await api.getCalAiDashboard(user.id);
         setDashboardData(dashData);
-        const progData = await api.getCalAiProgress(TEST_USER_ID);
+        const progData = await api.getCalAiProgress(user.id);
         setProgressData(progData);
         setCurrentView("dashboard");
       } else {
@@ -163,7 +165,7 @@ export default function CalorieScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     init();
@@ -180,7 +182,7 @@ export default function CalorieScreen() {
         gender: formData.gender,
         dailyStepGoal: parseInt(formData.dailyStepGoal),
       };
-      const updated = await api.updateCalAiProfile(TEST_USER_ID, payload);
+      const updated = await api.updateCalAiProfile(user.id, payload);
       setProfile(updated);
       await init(); // Refresh all
     } catch (e) {
@@ -199,11 +201,7 @@ export default function CalorieScreen() {
     }
     try {
       setIsAnalyzing(true);
-      await api.analyzeMeal(
-        TEST_USER_ID,
-        mealDescription,
-        imageBase64 || undefined,
-      );
+      await api.analyzeMeal(user.id, mealDescription, imageBase64 || undefined);
       setMealDescription("");
       setSelectedImage(null);
       setImageBase64(null);
@@ -228,7 +226,7 @@ export default function CalorieScreen() {
           onPress: async () => {
             try {
               setLoading(true);
-              await api.resetCalAiDashboard(TEST_USER_ID);
+              await api.resetCalAiDashboard(user.id);
               await init();
             } catch (e) {
               Alert.alert("Error", "Failed to reset");

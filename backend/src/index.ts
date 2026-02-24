@@ -87,46 +87,54 @@ app.post(
 );
 
 // Task Routes (Protected)
-app.post("/tasks", verifySupabaseToken, async (req, res) => {
-  const { userId, title, scheduledDate, scheduledTime, isNotificationEnabled } =
-    req.body;
-  const task = await createTask(
-    userId,
-    title,
-    new Date(scheduledDate),
-    scheduledTime,
-    isNotificationEnabled,
-  );
-  res.json(task);
-  console.log("Task created:", task);
-});
+app.post(
+  "/tasks",
+  verifySupabaseToken,
+  async (req: AuthenticatedRequest, res) => {
+    const { title, scheduledDate, scheduledTime, isNotificationEnabled } =
+      req.body;
+    const task = await createTask(
+      req.user?.id!,
+      title,
+      new Date(scheduledDate),
+      scheduledTime,
+      isNotificationEnabled,
+    );
+    res.json(task);
+    console.log("Task created:", task);
+  },
+);
 
 app.get("/templates", verifySupabaseToken, async (req, res) => {
   try {
     const templates = await getTemplates();
+    console.log("Templates:", templates);
     res.json(templates);
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
 });
 
-app.post("/templates/:id/apply", verifySupabaseToken, async (req, res) => {
-  try {
-    const { userId } = req.body;
-    const templateId = req.params.id as string;
-    const result = await applyTemplate(userId, templateId);
-    res.json(result);
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
-});
+app.post(
+  "/templates/:id/apply",
+  verifySupabaseToken,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const templateId = req.params.id as string;
+      const result = await applyTemplate(req.user?.id!, templateId);
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+);
 
-app.put("/tasks/:id", async (req, res) => {
+app.put("/tasks/:id", verifySupabaseToken, async (req, res) => {
   const { title, scheduledDate, scheduledTime, isNotificationEnabled } =
     req.body;
   try {
     const task = await updateTask(
-      req.params.id,
+      req.params.id as string,
       title,
       new Date(scheduledDate),
       scheduledTime,
@@ -138,12 +146,12 @@ app.put("/tasks/:id", async (req, res) => {
   }
 });
 
-app.post("/tasks/:id/complete", async (req, res) => {
-  const task = await completeTask(req.params.id);
+app.post("/tasks/:id/complete", verifySupabaseToken, async (req, res) => {
+  const task = await completeTask(req.params.id as string);
   res.json(task);
 });
 
-app.delete("/tasks", async (req, res) => {
+app.delete("/tasks", verifySupabaseToken, async (req, res) => {
   try {
     const { taskIds } = req.body;
     if (!taskIds || !Array.isArray(taskIds)) {
@@ -157,33 +165,35 @@ app.delete("/tasks", async (req, res) => {
   }
 });
 
-app.get("/users/:id/stats", verifySupabaseToken, async (req, res) => {
-  try {
-    const userId = req.params.id as string;
-    const stats = await getUserStats(userId);
-    res.json(stats);
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get("/tasks", async (req, res) => {
-  try {
-    const userId = req.query.userId as string;
-    const dateStr = req.query.date as string;
-
-    if (!userId) {
-      res.status(400).json({ error: "userId is required" });
-      return;
+app.get(
+  "/users/:id/stats",
+  verifySupabaseToken,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      // Prioritize req.user.id for security, but allow params if we wanted to view others' stats (not currently supported)
+      const stats = await getUserStats(req.user?.id!);
+      res.json(stats);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
+  },
+);
 
-    const date = dateStr ? new Date(dateStr) : undefined;
-    const tasks = await getTasks(userId, date);
-    res.json(tasks);
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
-});
+app.get(
+  "/tasks",
+  verifySupabaseToken,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const dateStr = req.query.date as string;
+
+      const date = dateStr ? new Date(dateStr) : undefined;
+      const tasks = await getTasks(req.user?.id!, date);
+      res.json(tasks);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+);
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date() });
@@ -199,52 +209,63 @@ app.post("/tasks/rollover", async (req, res) => {
 });
 
 // Simulate daily rollover (every 6 hours for dev purposes)
-setInterval(
-  async () => {
-    console.log("Running auto-rollover...");
-    try {
-      await rolloverTasks();
-    } catch (e) {
-      console.error("Auto-rollover failed:", e);
-    }
-  },
-  6 * 60 * 60 * 1000,
-);
+// setInterval(
+//   async () => {
+//     console.log("Running auto-rollover...");
+//     try {
+//       await rolloverTasks();
+//     } catch (e) {
+//       console.error("Auto-rollover failed:", e);
+//     }
+//   },
+//   6 * 60 * 60 * 1000,
+// );
 
 // Cal AI Routes (Protected)
-app.get("/api/cal-ai/profile", verifySupabaseToken, async (req, res) => {
-  try {
-    const userId = req.query.userId as string;
-    const profile = await getCalAiProfile(userId);
-    if (!profile) return res.status(404).json({ error: "Profile not found" });
-    res.json(profile);
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
-});
+app.get(
+  "/api/cal-ai/profile",
+  verifySupabaseToken,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const profile = await getCalAiProfile(req.user?.id!);
+      if (!profile) return res.status(404).json({ error: "Profile not found" });
+      res.json(profile);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+);
 
-app.post("/api/cal-ai/profile", async (req, res) => {
-  try {
-    const { userId, ...data } = req.body;
-    const profile = await updateCalAiProfile(userId, data);
-    res.json(profile);
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
-});
+app.post(
+  "/api/cal-ai/profile",
+  verifySupabaseToken,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { ...data } = req.body;
+      const profile = await updateCalAiProfile(req.user?.id!, data);
+      res.json(profile);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+);
 
-app.get("/api/cal-ai/dashboard", async (req, res) => {
-  try {
-    const userId = req.query.userId as string;
-    const dashboard = await getCalAiDashboard(userId);
-    if (!dashboard) return res.status(404).json({ error: "Profile not found" });
-    res.json(dashboard);
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
-});
+app.get(
+  "/api/cal-ai/dashboard",
+  verifySupabaseToken,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const dashboard = await getCalAiDashboard(req.user?.id!);
+      if (!dashboard)
+        return res.status(404).json({ error: "Profile not found" });
+      res.json(dashboard);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+);
 
-app.post("/api/cal-ai/analyze-meal", async (req, res) => {
+app.post("/api/cal-ai/analyze-meal", verifySupabaseToken, async (req, res) => {
   try {
     const { userId, description, imageBase64 } = req.body;
     const meal = await analyzeMeal(userId, description, imageBase64);
@@ -254,7 +275,7 @@ app.post("/api/cal-ai/analyze-meal", async (req, res) => {
   }
 });
 
-app.post("/api/cal-ai/reset", async (req, res) => {
+app.post("/api/cal-ai/reset", verifySupabaseToken, async (req, res) => {
   try {
     const { userId } = req.body;
     await resetTodayMeals(userId);
@@ -264,14 +285,18 @@ app.post("/api/cal-ai/reset", async (req, res) => {
   }
 });
 
-app.get("/api/cal-ai/progress/:userId", async (req, res) => {
-  try {
-    const data = await getCalAiProgress(req.params.userId);
-    res.json(data);
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
-});
+app.get(
+  "/api/cal-ai/progress/:userId",
+  verifySupabaseToken,
+  async (req, res) => {
+    try {
+      const data = await getCalAiProgress(req.params.userId as string);
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

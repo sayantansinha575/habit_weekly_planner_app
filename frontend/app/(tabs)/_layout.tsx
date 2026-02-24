@@ -1,5 +1,5 @@
-import { Tabs } from "expo-router";
-import React from "react";
+import { Tabs, useRouter, useRootNavigationState } from "expo-router";
+import React, { useEffect } from "react";
 import {
   LayoutDashboard,
   Calendar,
@@ -11,9 +11,32 @@ import {
 import { HapticTab } from "@/components/haptic-tab";
 import { Colors, Fonts } from "@/src/theme/colors";
 import useColorScheme from "@/hooks/use-color-scheme";
+import { useTaskStore } from "@/src/store/useTaskStore";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
+  const session = useTaskStore((state) => state.session);
+  const isAuthReady = useTaskStore((state) => state.isAuthReady);
+  const checkTrialStatus = useTaskStore((state) => state.checkTrialStatus);
+  const rootNavigationState = useRootNavigationState();
+
+  useEffect(() => {
+    // Wait for auth to be fully initialized AND router to be mounted
+    if (!isAuthReady || !rootNavigationState?.key) return;
+
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
+
+    if (checkTrialStatus() === "expired") {
+      router.replace({
+        pathname: "/subscription",
+        params: { isMandatory: "true" },
+      });
+    }
+  }, [session, isAuthReady, rootNavigationState?.key]);
 
   return (
     <Tabs

@@ -22,6 +22,8 @@ import Card from "@/src/components/Card";
 import { storage } from "@/src/utils/storage";
 import { Alert } from "react-native";
 
+import { useTaskStore } from "@/src/store/useTaskStore";
+
 const ICON_MAP: any = {
   GraduationCap,
   Briefcase,
@@ -30,7 +32,7 @@ const ICON_MAP: any = {
 };
 
 export default function TemplatesScreen() {
-  const TEST_USER_ID = "user-123";
+  const user = useTaskStore((state) => state.user);
   const [templates, setTemplates] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = React.useState(false);
@@ -65,8 +67,9 @@ export default function TemplatesScreen() {
         {
           text: "Apply",
           onPress: async () => {
+            if (!user?.id) return;
             try {
-              await storage.applyTemplate(TEST_USER_ID, templateId);
+              await storage.applyTemplate(user.id, templateId);
               Alert.alert("Success", "Template applied! Check your planner.");
             } catch (e) {
               Alert.alert("Error", "Failed to apply template.");

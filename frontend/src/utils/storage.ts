@@ -212,6 +212,7 @@ export const storage = {
       return templates;
     } catch (e) {
       const jsonValue = await AsyncStorage.getItem("@templates");
+      console.log("Templates from local storage:", jsonValue);
       return jsonValue != null ? JSON.parse(jsonValue) : [];
     }
   },

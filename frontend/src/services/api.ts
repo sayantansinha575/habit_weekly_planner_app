@@ -7,7 +7,7 @@ const getBackendUrl = () => {
   // For iOS Simulator or Web, use localhost
 
   // DEV CONFIG: Local IP for physical device
-  const isProduction = true;
+  const isProduction = false;
   const LOCAL_IP = "192.168.0.101";
 
   if (Platform.OS === "android") {
@@ -15,7 +15,7 @@ const getBackendUrl = () => {
     if (isProduction) {
       return "https://habit-weekly-planner-app.onrender.com";
     } else {
-      return `http://${LOCAL_IP}:3000`;
+      return `http://${LOCAL_IP}:5000`;
     }
   }
 
@@ -23,24 +23,37 @@ const getBackendUrl = () => {
     if (isProduction) {
       return "https://habit-weekly-planner-app.onrender.com";
     } else {
-      return `http://${LOCAL_IP}:3000`;
+      return `http://${LOCAL_IP}:5000`;
     }
   }
 
-  return "http://localhost:3000";
+  return "http://localhost:5000";
 };
 
 const BASE_URL = getBackendUrl();
+
+// Helper to get auth headers from Zustand store
+const getAuthHeaders = () => {
+  // We import dynamically to avoid circular dependency
+  const { useTaskStore } = require("../store/useTaskStore");
+  const session = useTaskStore.getState().session;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (session?.access_token) {
+    headers["Authorization"] = `Bearer ${session.access_token}`;
+  }
+  return headers;
+};
 
 export const api = {
   getTasks: async (userId: string) => {
     const url = new URL(`${BASE_URL}/tasks`);
     url.searchParams.append("userId", userId);
-    // if (date) {
-    //     url.searchParams.append('date', date);
-    // }
 
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error("Failed to fetch tasks");
     }
@@ -52,7 +65,9 @@ export const api = {
     url.searchParams.append("userId", userId);
     url.searchParams.append("date", date);
 
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error("Failed to fetch current Date tasks");
     }
@@ -68,9 +83,7 @@ export const api = {
   ) => {
     const response = await fetch(`${BASE_URL}/tasks`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         userId,
         title,
@@ -88,6 +101,7 @@ export const api = {
   completeTask: async (taskId: string) => {
     const response = await fetch(`${BASE_URL}/tasks/${taskId}/complete`, {
       method: "POST",
+      headers: getAuthHeaders(),
     });
     if (!response.ok) {
       throw new Error("Failed to complete task");
@@ -104,9 +118,7 @@ export const api = {
   ) => {
     const response = await fetch(`${BASE_URL}/tasks/${taskId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         title,
         scheduledDate,
@@ -121,7 +133,9 @@ export const api = {
   },
 
   getUserStats: async (userId: string) => {
-    const response = await fetch(`${BASE_URL}/users/${userId}/stats`);
+    const response = await fetch(`${BASE_URL}/users/${userId}/stats`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error("Failed to fetch user stats");
     }
@@ -129,7 +143,9 @@ export const api = {
   },
 
   getTemplates: async () => {
-    const response = await fetch(`${BASE_URL}/templates`);
+    const response = await fetch(`${BASE_URL}/templates`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) {
       throw new Error("Failed to fetch templates");
     }
@@ -139,9 +155,7 @@ export const api = {
   applyTemplate: async (userId: string, templateId: string) => {
     const response = await fetch(`${BASE_URL}/templates/${templateId}/apply`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ userId }),
     });
     if (!response.ok) {
@@ -153,9 +167,7 @@ export const api = {
   deleteTasks: async (taskIds: string[]) => {
     const response = await fetch(`${BASE_URL}/tasks`, {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ taskIds }),
     });
     if (!response.ok) {
@@ -168,6 +180,7 @@ export const api = {
   getCalAiProfile: async (userId: string) => {
     const response = await fetch(
       `${BASE_URL}/api/cal-ai/profile?userId=${userId}`,
+      { headers: getAuthHeaders() },
     );
     if (response.status === 404) return null;
     if (!response.ok) throw new Error("Failed to fetch Cal AI profile");
@@ -177,7 +190,7 @@ export const api = {
   updateCalAiProfile: async (userId: string, data: any) => {
     const response = await fetch(`${BASE_URL}/api/cal-ai/profile`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ userId, ...data }),
     });
     if (!response.ok) throw new Error("Failed to update Cal AI profile");
@@ -187,6 +200,7 @@ export const api = {
   getCalAiDashboard: async (userId: string) => {
     const response = await fetch(
       `${BASE_URL}/api/cal-ai/dashboard?userId=${userId}`,
+      { headers: getAuthHeaders() },
     );
     if (!response.ok) throw new Error("Failed to fetch Cal AI dashboard");
     return response.json();
@@ -199,7 +213,7 @@ export const api = {
   ) => {
     const response = await fetch(`${BASE_URL}/api/cal-ai/analyze-meal`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ userId, description, imageBase64 }),
     });
     if (!response.ok) throw new Error("Failed to analyze meal");
@@ -208,15 +222,31 @@ export const api = {
   resetCalAiDashboard: async (userId: string) => {
     const response = await fetch(`${BASE_URL}/api/cal-ai/reset`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ userId }),
     });
     if (!response.ok) throw new Error("Failed to reset dashboard");
     return response.json();
   },
   getCalAiProgress: async (userId: string) => {
-    const response = await fetch(`${BASE_URL}/api/cal-ai/progress/${userId}`);
+    const response = await fetch(`${BASE_URL}/api/cal-ai/progress/${userId}`, {
+      headers: getAuthHeaders(),
+    });
     if (!response.ok) throw new Error("Failed to fetch progress data");
+    return response.json();
+  },
+
+  verifySupabaseAuth: async (token: string) => {
+    const response = await fetch(`${BASE_URL}/auth/supabase`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Failed to verify Supabase auth");
+    }
     return response.json();
   },
 };

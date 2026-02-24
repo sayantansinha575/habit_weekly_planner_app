@@ -17,21 +17,21 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useTaskStore } from "@/src/store/useTaskStore";
 
 export default function InsightsScreen() {
-  const TEST_USER_ID = "user-123";
+  const user = useTaskStore((state) => state.user);
   const { stats, loading, loadStats } = useTaskStore();
   const isFetchingRef = React.useRef(false);
 
   const handleLoadStats = React.useCallback(async () => {
-    if (isFetchingRef.current) return;
+    if (isFetchingRef.current || !user?.id) return;
     isFetchingRef.current = true;
     try {
-      await loadStats(TEST_USER_ID);
+      await loadStats(user.id);
     } catch (e) {
       console.error("Insights handleLoadStats failed", e);
     } finally {
       isFetchingRef.current = false;
     }
-  }, [loadStats]);
+  }, [loadStats, user?.id]);
 
   useFocusEffect(
     React.useCallback(() => {
