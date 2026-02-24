@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { register, login, upsertSupabaseUser } from "./auth";
 import {
   verifySupabaseToken,
+  verifySupabaseJWT,
   AuthenticatedRequest,
 } from "./middleware/authMiddleware";
 import {
@@ -63,7 +64,7 @@ app.post("/login", async (req, res) => {
 
 app.post(
   "/auth/supabase",
-  verifySupabaseToken,
+  verifySupabaseJWT,
   async (req: AuthenticatedRequest, res) => {
     try {
       if (!req.user) throw new Error("User info missing from token");
