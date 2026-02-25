@@ -11,7 +11,10 @@ export const upsertSupabaseUser = async (email: string, supabaseId: string) => {
   const subscriptionEndDate = new Date();
   subscriptionEndDate.setDate(trialStartDate.getDate() + 7);
 
-  return prisma.user.upsert({
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  const isNewUser = !existingUser;
+
+  const user = await prisma.user.upsert({
     where: { email },
     update: {
       supabaseId,
@@ -24,6 +27,8 @@ export const upsertSupabaseUser = async (email: string, supabaseId: string) => {
       subscriptionEndDate,
     },
   });
+
+  return { user, isNewUser };
 };
 
 export const register = async (email: string, password: string) => {

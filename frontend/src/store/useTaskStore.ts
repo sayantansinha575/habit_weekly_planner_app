@@ -37,6 +37,7 @@ interface TaskState {
   session: any;
   isAuthReady: boolean;
   isAuthenticating: boolean;
+  isOnboarding: boolean;
 
   // Actions
   setIsAuthenticating: (isAuthenticating: boolean) => void;
@@ -63,6 +64,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   session: null,
   isAuthReady: false,
   isAuthenticating: false,
+  isOnboarding: false,
 
   setIsAuthenticating: (isAuthenticating) => set({ isAuthenticating }),
   setIsAuthReady: (ready) => set({ isAuthReady: ready }),
@@ -84,13 +86,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     // Verify with backend
     try {
-      const { user } = await api.verifySupabaseAuth(session.access_token);
-      console.log("User verified:", user);
+      const { user, isNewUser } = await api.verifySupabaseAuth(
+        session.access_token,
+      );
+      console.log("User verified:", user, "isNewUser:", isNewUser);
       set({
         user,
         subscriptionStatus: user.subscriptionStatus,
         isAuthReady: true,
         isAuthenticating: false,
+        isOnboarding: !!isNewUser,
       });
 
       // Configure RevenueCat

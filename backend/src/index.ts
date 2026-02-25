@@ -69,7 +69,7 @@ app.post(
     try {
       if (!req.user) throw new Error("User info missing from token");
 
-      const user = await upsertSupabaseUser(
+      const { user, isNewUser } = await upsertSupabaseUser(
         req.user.email,
         req.user.supabaseId,
       );
@@ -80,7 +80,7 @@ app.post(
         process.env.JWT_SECRET || "your_secret_key",
       );
 
-      res.json({ user, token });
+      res.json({ user, token, isNewUser });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

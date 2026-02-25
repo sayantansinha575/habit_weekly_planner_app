@@ -48,4 +48,38 @@ export const iapService = {
       return null;
     }
   },
+
+  getPackageMetadata: (pkg: any) => {
+    const type = pkg.packageType;
+    switch (type) {
+      case "MONTHLY":
+        return {
+          title: "Monthly",
+          badge: null,
+          icon: "Zap",
+          description: "Perfect for getting started",
+        };
+      case "ANNUAL":
+        return {
+          title: "Yearly",
+          badge: "Best Value",
+          icon: "Crown",
+          description: "Save 40% annually",
+        };
+      case "LIFETIME":
+        return {
+          title: "Lifetime",
+          badge: "One-Time",
+          icon: "Diamond",
+          description: "Pay once, keep forever",
+        };
+      default:
+        return {
+          title: "Pro",
+          badge: null,
+          icon: "Star",
+          description: "Full access",
+        };
+    }
+  },
 };
