@@ -56,6 +56,95 @@ export const getTasks = async (userId: string, date?: Date) => {
   });
 };
 
+// export const completeTask = async (taskId: string) => {
+//   const currentTask = await prisma.task.findUnique({ where: { id: taskId } });
+//   if (!currentTask) throw new Error("Task not found");
+
+//   const task = await prisma.task.update({
+//     where: { id: taskId },
+//     data: { isCompleted: !currentTask.isCompleted },
+//   });
+
+//   // Streak Logic: All-or-nothing per day
+//   const userId = task.userId;
+//   const scheduledDate = new Date(task.scheduledDate);
+//   scheduledDate.setHours(0, 0, 0, 0);
+
+//   // Fetch all tasks for this same day
+//   const dayTasks = await prisma.task.findMany({
+//     where: {
+//       userId,
+//       scheduledDate: {
+//         gte: new Date(scheduledDate),
+//         lte: new Date(
+//           scheduledDate.getTime() +
+//             23 * 60 * 60 * 1000 +
+//             59 * 60 * 1000 +
+//             59 * 1000 +
+//             999,
+//         ),
+//       },
+//     },
+//   });
+
+//   const isDayComplete =
+//     dayTasks.length > 0 && dayTasks.every((t) => t.isCompleted);
+//   const user = await prisma.user.findUnique({ where: { id: userId } });
+
+//   if (user && isDayComplete) {
+//     const lastActive = new Date(user.lastActiveAt);
+//     lastActive.setHours(0, 0, 0, 0);
+
+//     const diffTime = scheduledDate.getTime() - lastActive.getTime();
+//     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+//     if (diffDays === 1) {
+//       // Perfect consecutive day!
+//       await prisma.user.update({
+//         where: { id: userId },
+//         data: {
+//           dailyStreak: { increment: 1 },
+//           lastActiveAt: scheduledDate,
+//         },
+//       });
+//     } else if (diffDays > 1 || user.dailyStreak === 0) {
+//       // Gap day or first streak - Reset/Start at 1
+//       await prisma.user.update({
+//         where: { id: userId },
+//         data: {
+//           dailyStreak: 1,
+//           lastActiveAt: scheduledDate,
+//         },
+//       });
+//     }
+//     // If diffDays === 0, they completed the last task of a day they already "passed", or re-completed it. No change.
+//   } else if (user && !isDayComplete) {
+//     // If the day is NOT complete but it was the "last active" day (the tip of the streak)
+//     // and they just unchecked a task, we should potentially decrement.
+//     const lastActive = new Date(user.lastActiveAt);
+//     lastActive.setHours(0, 0, 0, 0);
+
+//     if (
+//       scheduledDate.getTime() === lastActive.getTime() &&
+//       user.dailyStreak > 0
+//     ) {
+//       // Moving tip back by 1 day (conservative estimate)
+//       const newLastActive = new Date(scheduledDate);
+//       newLastActive.setDate(newLastActive.getDate() - 1);
+
+//       await prisma.user.update({
+//         where: { id: userId },
+//         data: {
+//           dailyStreak: { decrement: 1 },
+//           lastActiveAt: newLastActive,
+//         },
+//       });
+//     }
+//   }
+
+//   return task;
+// };
+
 export const completeTask = async (taskId: string) => {
   const currentTask = await prisma.task.findUnique({ where: { id: taskId } });
   if (!currentTask) throw new Error("Task not found");
@@ -65,41 +154,57 @@ export const completeTask = async (taskId: string) => {
     data: { isCompleted: !currentTask.isCompleted },
   });
 
-  // Streak Logic: All-or-nothing per day
   const userId = task.userId;
+
+  // ✅ SAFELY handle scheduledDate
+  if (!task.scheduledDate) return task;
+
   const scheduledDate = new Date(task.scheduledDate);
   scheduledDate.setHours(0, 0, 0, 0);
 
-  // Fetch all tasks for this same day
   const dayTasks = await prisma.task.findMany({
     where: {
       userId,
       scheduledDate: {
-        gte: new Date(scheduledDate),
-        lte: new Date(
-          scheduledDate.getTime() +
-            23 * 60 * 60 * 1000 +
-            59 * 60 * 1000 +
-            59 * 1000 +
-            999,
-        ),
+        gte: scheduledDate,
+        lte: new Date(scheduledDate.getTime() + 24 * 60 * 60 * 1000 - 1),
       },
     },
   });
 
   const isDayComplete =
     dayTasks.length > 0 && dayTasks.every((t) => t.isCompleted);
-  const user = await prisma.user.findUnique({ where: { id: userId } });
 
-  if (user && isDayComplete) {
-    const lastActive = new Date(user.lastActiveAt);
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return task;
+
+  // ✅ SAFE DEFAULTS
+  const dailyStreak = user.dailyStreak ?? 0;
+  const lastActiveAt = user.lastActiveAt ?? null;
+
+  // ==============================
+  // WHEN DAY IS COMPLETE
+  // ==============================
+  if (isDayComplete) {
+    if (!lastActiveAt) {
+      // First ever completion
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          dailyStreak: 1,
+          lastActiveAt: scheduledDate,
+        },
+      });
+      return task;
+    }
+
+    const lastActive = new Date(lastActiveAt);
     lastActive.setHours(0, 0, 0, 0);
 
     const diffTime = scheduledDate.getTime() - lastActive.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
-      // Perfect consecutive day!
       await prisma.user.update({
         where: { id: userId },
         data: {
@@ -107,8 +212,7 @@ export const completeTask = async (taskId: string) => {
           lastActiveAt: scheduledDate,
         },
       });
-    } else if (diffDays > 1 || user.dailyStreak === 0) {
-      // Gap day or first streak - Reset/Start at 1
+    } else if (diffDays > 1 || dailyStreak === 0) {
       await prisma.user.update({
         where: { id: userId },
         data: {
@@ -117,18 +221,18 @@ export const completeTask = async (taskId: string) => {
         },
       });
     }
-    // If diffDays === 0, they completed the last task of a day they already "passed", or re-completed it. No change.
-  } else if (user && !isDayComplete) {
-    // If the day is NOT complete but it was the "last active" day (the tip of the streak)
-    // and they just unchecked a task, we should potentially decrement.
-    const lastActive = new Date(user.lastActiveAt);
+  }
+
+  // ==============================
+  // WHEN DAY BECOMES INCOMPLETE
+  // ==============================
+  else {
+    if (!lastActiveAt) return task;
+
+    const lastActive = new Date(lastActiveAt);
     lastActive.setHours(0, 0, 0, 0);
 
-    if (
-      scheduledDate.getTime() === lastActive.getTime() &&
-      user.dailyStreak > 0
-    ) {
-      // Moving tip back by 1 day (conservative estimate)
+    if (scheduledDate.getTime() === lastActive.getTime() && dailyStreak > 0) {
       const newLastActive = new Date(scheduledDate);
       newLastActive.setDate(newLastActive.getDate() - 1);
 
@@ -144,7 +248,6 @@ export const completeTask = async (taskId: string) => {
 
   return task;
 };
-
 export const getUserStats = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
