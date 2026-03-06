@@ -175,9 +175,9 @@ const SubscriptionScreen = () => {
     <LinearGradient colors={["#0f172a", "#1e293b"]} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          {/* <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             {isMandatory !== "true" && <X size={24} color="#94a3b8" />}
-          </TouchableOpacity> */}
+          </TouchableOpacity>
         </View>
 
         <ScrollView

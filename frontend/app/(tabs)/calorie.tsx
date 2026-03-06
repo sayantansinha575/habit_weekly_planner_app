@@ -257,7 +257,7 @@ export default function CalorieScreen() {
       style={styles.scrollContainer}
       contentContainerStyle={styles.onboardingContent}
     >
-      <Text style={styles.onboardingTitle}>Welcome to Cal AI</Text>
+      <Text style={styles.onboardingTitle}>Welcome to Calorie AI</Text>
       <Text style={styles.onboardingSubtitle}>
         Let's set up your personal nutrition profile.
       </Text>

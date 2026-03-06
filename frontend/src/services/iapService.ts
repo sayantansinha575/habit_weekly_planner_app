@@ -1,13 +1,16 @@
 import Purchases, { PurchasesOffering } from "react-native-purchases";
 import { Platform } from "react-native";
 
-const API_KEY_ANDROID = "test_PneAYDxdnVJwDLVpBkMHblIBETW";
+const API_KEY_ANDROID = "goog_vsQYGRBUhdYHRtjDBibndSkvMLD";
 
 export const iapService = {
   configure: async (userId: string) => {
     try {
       if (Platform.OS === "android") {
-        Purchases.configure({ apiKey: API_KEY_ANDROID, appUserID: userId });
+        await Purchases.configure({
+          apiKey: API_KEY_ANDROID,
+          appUserID: userId,
+        });
       }
       // Add iOS config if needed in future
     } catch (e) {

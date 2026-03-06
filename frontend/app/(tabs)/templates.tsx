@@ -69,7 +69,7 @@ export default function TemplatesScreen() {
           onPress: async () => {
             if (!user?.id) return;
             try {
-              await storage.applyTemplate(user.id, templateId);
+              await useTaskStore.getState().applyTemplate(user.id, templateId);
               Alert.alert("Success", "Template applied! Check your planner.");
             } catch (e) {
               Alert.alert("Error", "Failed to apply template.");

@@ -296,6 +296,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       const { sync } = await storage.fetchTasks(userId);
       const synced = await sync;
       set({ tasks: synced, loading: false });
+      // Refresh stats to reflect new tasks
+      await get().loadStats(userId);
     } catch (e) {
       console.error("Store applyTemplate failed", e);
       set({ loading: false });
