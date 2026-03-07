@@ -13,6 +13,7 @@ interface ProgressRingProps {
   centerText?: string;
   textColor?: string;
   labelColor?: string;
+  trackColor?: string;
   children?: React.ReactNode;
 }
 
@@ -26,6 +27,7 @@ const ProgressRing = ({
   centerText,
   textColor,
   labelColor,
+  trackColor = "rgba(0,0,0,0.05)",
   children,
 }: ProgressRingProps) => {
   const radius = (size - strokeWidth) / 2;
@@ -41,7 +43,7 @@ const ProgressRing = ({
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="rgba(255,255,255,0.1)"
+            stroke={trackColor}
             strokeWidth={strokeWidth}
             fill="transparent"
           />

@@ -330,7 +330,7 @@ export default function CalorieScreen() {
       >
         <View style={styles.dashHeader}>
           <View style={styles.titleRow}>
-            <Apple color="#FFF" fill="#000" size={32} />
+            <Apple color={Colors.text} fill={Colors.secondary} size={32} />
             <Text style={styles.dashTitle}>Calorie AI</Text>
           </View>
           <View style={styles.streakBadge}>
@@ -420,8 +420,8 @@ export default function CalorieScreen() {
                     )
                   : 0
               }
-              size={200}
-              strokeWidth={15}
+              size={180}
+              strokeWidth={12}
               color={Colors.secondary}
               centerText={
                 dashboardData
@@ -429,7 +429,7 @@ export default function CalorieScreen() {
                   : "0"
               }
               label="Calories Left"
-              textColor="#FFF"
+              textColor={Colors.text}
             />
           )}
         </View>
@@ -589,7 +589,7 @@ export default function CalorieScreen() {
           onPress={() => setCurrentView("dashboard")}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <ChevronLeft color="#FFF" size={28} />
+          <ChevronLeft color={Colors.text} size={28} />
         </TouchableOpacity>
         <Text style={styles.modalTitle}>What did you eat?</Text>
         <View style={{ width: 28 }} />
@@ -615,11 +615,11 @@ export default function CalorieScreen() {
         ) : (
           <View style={styles.imageButtonsRow}>
             <TouchableOpacity style={styles.imageActionBtn} onPress={takePhoto}>
-              <Camera color="#FFF" size={24} />
+              <Camera color={Colors.text} size={24} />
               <Text style={styles.imageActionText}>Take Photo</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.imageActionBtn} onPress={pickImage}>
-              <Search color="#FFF" size={24} />
+              <Search color={Colors.text} size={24} />
               <Text style={styles.imageActionText}>Gallery</Text>
             </TouchableOpacity>
           </View>
@@ -646,10 +646,10 @@ export default function CalorieScreen() {
           disabled={isAnalyzing}
         >
           {isAnalyzing ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color="#000" />
           ) : (
             <>
-              <Zap color="#FFF" size={20} style={{ marginRight: 8 }} />
+              <Zap color="#000" size={20} style={{ marginRight: 8 }} />
               <Text style={styles.primaryBtnText}>Analyze with AI</Text>
             </>
           )}
@@ -676,7 +676,7 @@ export default function CalorieScreen() {
           onPress={() => setCurrentView("dashboard")}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <ChevronLeft color="#FFF" size={28} />
+          <ChevronLeft color={Colors.text} size={28} />
         </TouchableOpacity>
         <Text style={styles.modalTitle}>Calorie AI Profile</Text>
         <View style={{ width: 28 }} />
@@ -737,7 +737,7 @@ export default function CalorieScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
-        colors={["#0F0C29", "#24243e"]}
+        colors={["#E3F2FD", "#F3E5F5", "#FCE4EC"]}
         style={StyleSheet.absoluteFill}
       />
       {currentView === "dashboard" && renderDashboard()}
@@ -751,7 +751,7 @@ export default function CalorieScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#0F0C29",
+    backgroundColor: "transparent",
   },
   mainContainer: {
     flex: 1,
@@ -773,13 +773,13 @@ const styles = StyleSheet.create({
   onboardingTitle: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#FFF",
+    color: Colors.text,
     fontFamily: Fonts.bold,
     textAlign: "center",
   },
   onboardingSubtitle: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.8)",
+    color: Colors.textMuted,
     fontFamily: Fonts.regular,
     textAlign: "center",
     marginTop: 8,
@@ -787,27 +787,32 @@ const styles = StyleSheet.create({
   },
   formCard: {
     padding: 20,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "transparent",
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    // borderColor: "rgba(255,255,255,0.5)",
+    // shadowColor: "#000",
+    // shadowOffset: { width: 0, height: 4 },
+    // shadowOpacity: 0.05,
+    // shadowRadius: 10,
+    elevation: 0,
   },
   inputLabel: {
     fontSize: 14,
-    color: "#FFF",
+    color: Colors.text,
     fontFamily: Fonts.semiBold,
     marginBottom: 8,
     marginTop: 16,
   },
   input: {
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.8)",
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
     fontFamily: Fonts.regular,
-    color: "#FFF",
+    color: Colors.text,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(255,255,255,0.5)",
   },
   primaryBtn: {
     backgroundColor: Colors.secondary,
@@ -843,7 +848,7 @@ const styles = StyleSheet.create({
   dashTitle: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#FFF",
+    color: Colors.text,
     fontFamily: Fonts.bold,
   },
   streakBadge: {
@@ -854,11 +859,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     gap: 6,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    elevation: 4,
+    shadowColor: "rgba(0,0,0,0.1)",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
   },
   streakText: {
     fontSize: 18,
@@ -870,7 +875,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 30,
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: "rgba(255,255,255,0.3)",
     padding: 10,
     borderRadius: 24,
   },
@@ -884,14 +889,14 @@ const styles = StyleSheet.create({
   selectedDayItem: {
     backgroundColor: "#FFF",
     elevation: 4,
-    shadowColor: "#000",
+    shadowColor: "rgba(0,0,0,0.1)",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 1,
+    shadowRadius: 12,
   },
   dayNameText: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.5)",
+    color: Colors.textMuted,
     fontFamily: Fonts.medium,
     marginBottom: 8,
   },
@@ -910,29 +915,32 @@ const styles = StyleSheet.create({
     borderColor: "#000",
   },
   dashedDayCircle: {
-    borderColor: "rgba(255,255,255,0.3)",
+    borderColor: Colors.border,
     borderStyle: "dashed",
   },
   dayNumText: {
     fontSize: 14,
-    color: "#FFF",
+    color: Colors.text,
     fontFamily: Fonts.bold,
   },
   dashSubtitle: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.7)",
+    color: Colors.textMuted,
     fontFamily: Fonts.regular,
   },
   profileBadge: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
   mainRingContainer: {
     alignItems: "center",
+    justifyContent: "center",
     marginVertical: 20,
   },
   macroRow: {
@@ -945,11 +953,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 12,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#FFF",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    shadowOpacity: 0,
-    elevation: 0,
+    borderColor: "rgba(255,255,255,0.5)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
     marginVertical: 0,
     height: 140, // Fixed height to align cards
     justifyContent: "space-between",
@@ -961,19 +972,24 @@ const styles = StyleSheet.create({
   macroValue: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#FFF",
+    color: Colors.text,
     fontFamily: Fonts.bold,
     marginTop: 8,
   },
   macroLabel: {
     fontSize: 10,
-    color: "rgba(255,255,255,0.7)",
+    color: Colors.textMuted,
     fontFamily: Fonts.regular,
   },
   addMealHero: {
     marginTop: 30,
     borderRadius: 20,
     overflow: "hidden",
+    elevation: 5,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   gradientBtn: {
     flexDirection: "row",
@@ -991,7 +1007,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#FFF",
+    color: Colors.text,
     fontFamily: Fonts.bold,
     marginTop: 32,
     marginBottom: 16,
@@ -1002,11 +1018,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     marginBottom: 12,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "#FFF",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    shadowOpacity: 0,
-    elevation: 0,
+    borderColor: "rgba(255,255,255,0.5)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
     marginVertical: 0,
   },
   mealInfo: {
@@ -1015,12 +1034,12 @@ const styles = StyleSheet.create({
   mealDesc: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#FFF",
+    color: Colors.text,
     fontFamily: Fonts.bold,
   },
   mealMacros: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.7)",
+    color: Colors.textMuted,
     fontFamily: Fonts.regular,
     marginTop: 4,
   },
@@ -1032,7 +1051,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: "center",
-    color: "rgba(255,255,255,0.4)",
+    color: Colors.textMuted,
     fontFamily: Fonts.regular,
     marginTop: 20,
   },
@@ -1047,7 +1066,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#FFF",
+    color: Colors.text,
     fontFamily: Fonts.bold,
   },
   addMealContent: {
@@ -1055,16 +1074,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   textArea: {
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(255,255,255,0.7)",
     borderRadius: 16,
     padding: 20,
     fontSize: 16,
     fontFamily: Fonts.regular,
-    color: "#FFF",
+    color: Colors.text,
     height: 150,
     textAlignVertical: "top",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(255,255,255,0.5)",
   },
   celebrationContainer: {
     width: "100%",
@@ -1081,28 +1100,28 @@ const styles = StyleSheet.create({
   },
   celebrationTitle: {
     fontSize: 24,
-    color: "#FFF",
+    color: Colors.text,
     fontFamily: Fonts.bold,
     marginTop: 15,
   },
   celebrationText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
+    color: Colors.textMuted,
     fontFamily: Fonts.regular,
     textAlign: "center",
     marginTop: 8,
     marginBottom: 20,
   },
   resetBtn: {
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(0,0,0,0.05)",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: "rgba(0,0,0,0.1)",
   },
   resetBtnText: {
-    color: "#FFF",
+    color: Colors.text,
     fontSize: 14,
     fontFamily: Fonts.semiBold,
   },
@@ -1113,7 +1132,7 @@ const styles = StyleSheet.create({
   },
   aiNoteText: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.7)",
+    color: Colors.textMuted,
     fontFamily: Fonts.regular,
     marginLeft: 8,
     lineHeight: 18,
@@ -1125,16 +1144,16 @@ const styles = StyleSheet.create({
   },
   imageActionBtn: {
     flex: 1,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.7)",
     borderRadius: 16,
     padding: 20,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(255,255,255,0.5)",
   },
   imageActionText: {
-    color: "#FFF",
+    color: Colors.text,
     fontSize: 12,
     fontFamily: Fonts.medium,
     marginTop: 8,

@@ -7,7 +7,7 @@ const getBackendUrl = () => {
   // For iOS Simulator or Web, use localhost
 
   // DEV CONFIG: Local IP for physical device
-  const isProduction = true;
+  const isProduction = false;
   const LOCAL_IP = "192.168.0.101";
 
   if (Platform.OS === "android") {

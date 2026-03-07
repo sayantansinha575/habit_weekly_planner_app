@@ -52,12 +52,14 @@ const Chart = ({
   height?: number;
 }) => {
   const chartWidth = width - 80;
+  if (data.length === 0) return null;
+
   const max = Math.max(...data, 1);
   const min = Math.min(...data, 0);
-  const range = max - min;
+  const range = max - min || 1;
 
   const points = data.map((val, i) => ({
-    x: (i / (data.length - 1)) * chartWidth,
+    x: data.length > 1 ? (i / (data.length - 1)) * chartWidth : chartWidth / 2,
     y: height - ((val - min) / range) * height + 10,
   }));
 
@@ -92,28 +94,28 @@ export default function CalorieProgress({
   data,
   onProfilePress,
 }: CalorieProgressProps) {
+  // Logic: 0% if currentWeight is far from goal, 100% if currentWeight <= goalWeight
+  // We'll use a 20kg historical range for progress visualization if no startWeight is available
   const weightProgress = Math.max(
     0,
     Math.min(
       1,
-      data.currentWeight > data.goalWeight
-        ? 1 - (data.currentWeight - data.goalWeight) / 10
-        : 1,
+      data.currentWeight <= data.goalWeight
+        ? 1
+        : 1 - Math.min(1, (data.currentWeight - data.goalWeight) / 20),
     ),
   );
 
   const calorieValues = data.chartData.map((d) => d.calories);
-  const defaultCalories = [1800, 2100, 1950, 2400, 2200, 1900, 2050];
-  const chartValues =
-    calorieValues.length > 1 ? calorieValues : defaultCalories;
+  const chartValues = calorieValues;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>Progress</Text>
-        <TouchableOpacity style={styles.profileBtn} onPress={onProfilePress}>
-          <UserIcon color="#FFF" size={24} />
-        </TouchableOpacity>
+        {/* <TouchableOpacity style={styles.profileBtn} onPress={onProfilePress}>
+          <UserIcon color={Colors.text} size={24} />
+        </TouchableOpacity> */}
       </View>
 
       <View style={styles.row}>
@@ -219,7 +221,9 @@ export default function CalorieProgress({
           <View
             style={[
               styles.gaugeIndicator,
-              { left: `${Math.min(100, (data.bmi / 40) * 100)}%` },
+              {
+                left: `${Math.max(0, Math.min(100, ((data.bmi - 15) / (40 - 15)) * 100))}%`,
+              },
             ]}
           />
         </View>
@@ -245,7 +249,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#FFF",
+    color: Colors.text,
     fontFamily: Fonts.bold,
   },
   headerRow: {
@@ -259,11 +263,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(0,0,0,0.05)",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(0,0,0,0.05)",
   },
   row: {
     flexDirection: "row",
@@ -376,7 +380,7 @@ const styles = StyleSheet.create({
   filterRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "rgba(0,0,0,0.05)",
     padding: 6,
     borderRadius: 16,
     marginBottom: 20,
@@ -393,7 +397,7 @@ const styles = StyleSheet.create({
   },
   filterText: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.6)",
+    color: Colors.textMuted,
     fontFamily: Fonts.medium,
   },
   activeFilterText: {

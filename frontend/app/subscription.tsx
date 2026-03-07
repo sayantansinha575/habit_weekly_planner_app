@@ -46,10 +46,10 @@ const SubscriptionScreen = () => {
     setOfferings(data);
     if (data?.availablePackages && data.availablePackages.length > 0) {
       // Auto-select Yearly (ANNUAL) if available, otherwise first
-      const annual = data.availablePackages.find(
-        (p: any) => p.packageType === "ANNUAL",
+      const monthly = data.availablePackages.find(
+        (p: any) => p.packageType === "MONTHLY",
       );
-      setSelectedPackage(annual || data.availablePackages[0]);
+      setSelectedPackage(monthly || data.availablePackages[0]);
     }
     setLoading(false);
   };

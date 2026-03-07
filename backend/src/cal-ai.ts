@@ -28,6 +28,56 @@ export const updateCalAiProfile = async (userId: string, data: any) => {
   });
 };
 
+const calculateDailyTargets = (profile: any) => {
+  const {
+    currentWeight,
+    goalWeight,
+    height,
+    dateOfBirth,
+    gender,
+    dailyStepGoal,
+  } = profile;
+  const age = new Date().getFullYear() - new Date(dateOfBirth).getFullYear();
+  const heightNum = parseFloat(height);
+
+  // Mifflin-St Jeor Equation
+  let bmr = 10 * currentWeight + 6.25 * heightNum - 5 * age;
+  if (gender === "Male") {
+    bmr += 5;
+  } else {
+    bmr -= 161;
+  }
+
+  // Activity Multiplier based on step goal
+  let multiplier = 1.2; // Sedentary
+  if (dailyStepGoal >= 12000)
+    multiplier = 1.9; // Extra Active
+  else if (dailyStepGoal >= 10000)
+    multiplier = 1.725; // Very Active
+  else if (dailyStepGoal >= 7500)
+    multiplier = 1.55; // Moderate
+  else if (dailyStepGoal >= 5000) multiplier = 1.375; // Lightly Active
+
+  let tdee = bmr * multiplier;
+
+  // Goal adjustment
+  let dailyTarget = tdee;
+  if (goalWeight < currentWeight) {
+    dailyTarget -= 500; // Calorie deficit for weight loss
+  } else if (goalWeight > currentWeight) {
+    dailyTarget += 300; // Calorie surplus for muscle gain
+  }
+
+  dailyTarget = Math.max(1200, Math.round(dailyTarget)); // Health safety floor
+
+  // Macro Splits (30% P, 40% C, 30% F)
+  const proteinTarget = Math.round((dailyTarget * 0.3) / 4);
+  const carbsTarget = Math.round((dailyTarget * 0.4) / 4);
+  const fatsTarget = Math.round((dailyTarget * 0.3) / 9);
+
+  return { dailyTarget, proteinTarget, carbsTarget, fatsTarget };
+};
+
 export const getCalAiDashboard = async (userId: string) => {
   const profile = await prisma.calAiProfile.findUnique({
     where: { userId },
@@ -41,9 +91,6 @@ export const getCalAiDashboard = async (userId: string) => {
   const meals = await prisma.calAiMeal.findMany({
     where: {
       userId,
-      date: {
-        gte: today,
-      },
     },
   });
 
@@ -52,11 +99,8 @@ export const getCalAiDashboard = async (userId: string) => {
   const totalCarbs = meals.reduce((sum, m) => sum + m.carbs, 0);
   const totalFats = meals.reduce((sum, m) => sum + m.fats, 0);
 
-  // Daily targets check (can be dynamic based on profile in future)
-  const dailyTarget = 2000;
-  const proteinTarget = 150;
-  const carbsTarget = 250;
-  const fatsTarget = 70;
+  const { dailyTarget, proteinTarget, carbsTarget, fatsTarget } =
+    calculateDailyTargets(profile);
 
   return {
     caloriesLeft: dailyTarget - totalCalories,
@@ -211,29 +255,29 @@ export const getCalAiProgress = async (userId: string) => {
   if (!profile) return null;
 
   // Last 7 days calories
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  sevenDaysAgo.setHours(0, 0, 0, 0);
+  const chartData = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    d.setHours(0, 0, 0, 0);
+    const dayStr = d.toISOString().split("T")[0];
 
-  const meals = await prisma.calAiMeal.findMany({
-    where: {
-      userId,
-      date: { gte: sevenDaysAgo },
-    },
-    orderBy: { date: "asc" },
-  });
+    const nextDay = new Date(d);
+    nextDay.setDate(nextDay.getDate() + 1);
 
-  // Group by day
-  const dailyCalories: Record<string, number> = {};
-  meals.forEach((meal) => {
-    const day = new Date(meal.date).toISOString().split("T")[0];
-    dailyCalories[day] = (dailyCalories[day] || 0) + meal.calories;
-  });
+    const meals = await prisma.calAiMeal.findMany({
+      where: {
+        userId,
+        date: {
+          gte: d,
+          lt: nextDay,
+        },
+      },
+    });
 
-  const chartData = Object.entries(dailyCalories).map(([date, calories]) => ({
-    date,
-    calories,
-  }));
+    const totalCals = meals.reduce((sum, m) => sum + m.calories, 0);
+    chartData.push({ date: dayStr, calories: totalCals });
+  }
 
   // Simple BMI: Weight (kg) / [Height (m)]^2
   const heightInMeters = parseFloat(profile.height) / 100;
@@ -241,7 +285,7 @@ export const getCalAiProgress = async (userId: string) => {
 
   let bmiCategory = "Healthy";
   if (bmi < 18.5) bmiCategory = "Underweight";
-  else if (bmi >= 25 && bmi < 30) bmiCategory = "Overweight";
+  else if (bmi >= 25 && bmi < 29.9) bmiCategory = "Overweight";
   else if (bmi >= 30) bmiCategory = "Obese";
 
   return {
