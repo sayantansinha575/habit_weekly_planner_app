@@ -255,6 +255,33 @@ export const storage = {
       throw e;
     }
   },
+
+  getCalAiProgress: async (userId: string, days: number = 7) => {
+    const key = `@cal_ai_progress_${userId}_${days}`;
+    try {
+      const fetchAndSave = async () => {
+        try {
+          const data = await api.getCalAiProgress(userId, days);
+          await AsyncStorage.setItem(key, JSON.stringify(data));
+          return data;
+        } catch (e) {
+          console.warn(`Background fetch cal-ai progress(${days}) failed`, e);
+          return null;
+        }
+      };
+
+      const jsonValue = await AsyncStorage.getItem(key);
+      const local = jsonValue != null ? JSON.parse(jsonValue) : null;
+
+      return {
+        local,
+        sync: fetchAndSave(),
+      };
+    } catch (e) {
+      console.warn("getCalAiProgress storage failed", e);
+      return { local: null, sync: Promise.resolve(null) };
+    }
+  },
 };
 
 export const saveTasksLocally = async (tasks: any[]) => {

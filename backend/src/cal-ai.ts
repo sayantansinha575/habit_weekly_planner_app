@@ -246,7 +246,7 @@ export const analyzeMeal = async (
   }
 };
 
-export const getCalAiProgress = async (userId: string) => {
+export const getCalAiProgress = async (userId: string, days: number = 7) => {
   const profile: any = await (prisma.calAiProfile as any).findUnique({
     where: { userId },
     include: { user: true },
@@ -254,28 +254,33 @@ export const getCalAiProgress = async (userId: string) => {
 
   if (!profile) return null;
 
-  // Last 7 days calories
+  // Last X days calories
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - (days - 1));
+  startDate.setHours(0, 0, 0, 0);
+
+  const allMeals = await prisma.calAiMeal.findMany({
+    where: {
+      userId,
+      date: { gte: startDate },
+    },
+    orderBy: { date: "asc" },
+  });
+
   const chartData = [];
-  for (let i = 6; i >= 0; i--) {
+  for (let i = days - 1; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     d.setHours(0, 0, 0, 0);
     const dayStr = d.toISOString().split("T")[0];
 
-    const nextDay = new Date(d);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    const meals = await prisma.calAiMeal.findMany({
-      where: {
-        userId,
-        date: {
-          gte: d,
-          lt: nextDay,
-        },
-      },
+    const dayMeals = allMeals.filter((m) => {
+      const mDate = new Date(m.date);
+      mDate.setHours(0, 0, 0, 0);
+      return mDate.toISOString().split("T")[0] === dayStr;
     });
 
-    const totalCals = meals.reduce((sum, m) => sum + m.calories, 0);
+    const totalCals = dayMeals.reduce((sum, m) => sum + m.calories, 0);
     chartData.push({ date: dayStr, calories: totalCals });
   }
 

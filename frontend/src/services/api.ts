@@ -228,10 +228,11 @@ export const api = {
     if (!response.ok) throw new Error("Failed to reset dashboard");
     return response.json();
   },
-  getCalAiProgress: async (userId: string) => {
-    const response = await fetch(`${BASE_URL}/api/cal-ai/progress/${userId}`, {
-      headers: getAuthHeaders(),
-    });
+  getCalAiProgress: async (userId: string, days: number = 7) => {
+    const response = await fetch(
+      `${BASE_URL}/api/cal-ai/progress/${userId}?days=${days}`,
+      { headers: getAuthHeaders() },
+    );
     if (!response.ok) throw new Error("Failed to fetch progress data");
     return response.json();
   },

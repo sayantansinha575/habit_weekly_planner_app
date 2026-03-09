@@ -26,6 +26,8 @@ import {
   Defs,
   LinearGradient as SvgGradient,
   Stop,
+  Text as SvgText,
+  G,
 } from "react-native-svg";
 
 const { width } = Dimensions.get("window");
@@ -40,52 +42,142 @@ interface CalorieProgressProps {
     streak: number;
   };
   onProfilePress?: () => void;
+  onFilterChange?: (days: number) => void;
+  activeDays?: number;
 }
 
 const Chart = ({
   data,
   color,
-  height = 150,
+  height = 180,
 }: {
-  data: number[];
+  data: Array<{ date: string; calories: number }>;
   color: string;
   height?: number;
 }) => {
-  const chartWidth = width - 80;
-  if (data.length === 0) return null;
+  const chartWidth = width - 40;
+  const paddingLeft = 40;
+  const paddingBottom = 25;
+  const paddingTop = 30;
+  const drawWidth = chartWidth - paddingLeft - 10;
+  const drawHeight = height - paddingTop - paddingBottom;
 
-  const max = Math.max(...data, 1);
-  const min = Math.min(...data, 0);
-  const range = max - min || 1;
+  if (!data || data.length === 0) return null;
 
-  const points = data.map((val, i) => ({
-    x: data.length > 1 ? (i / (data.length - 1)) * chartWidth : chartWidth / 2,
-    y: height - ((val - min) / range) * height + 10,
+  const values = data.map((d) => d.calories);
+  const maxVal = Math.max(...values, 2000); // Scale to at least 2000 kcal
+  const minVal = 0;
+  const range = maxVal - minVal || 1;
+
+  const points = data.map((d, i) => ({
+    x: paddingLeft + (i / (data.length - 1)) * drawWidth,
+    y: paddingTop + drawHeight - (d.calories / maxVal) * drawHeight,
+    val: d.calories,
+    day: new Date(d.date).toLocaleDateString("en-US", { weekday: "short" }),
   }));
 
-  const path = points
+  const linePath = points
     .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
     .join(" ");
 
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${paddingTop + drawHeight} L ${points[0].x} ${paddingTop + drawHeight} Z`;
+
+  // Grid line values
+  const gridLines = [0, 0.5, 1].map((p) => Math.round(p * maxVal));
+
   return (
-    <Svg width={chartWidth} height={height + 20}>
+    <Svg width={chartWidth} height={height}>
       <Defs>
-        <SvgGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={color} stopOpacity="0.3" />
+        <SvgGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={color} stopOpacity="0.2" />
           <Stop offset="1" stopColor={color} stopOpacity="0" />
         </SvgGradient>
       </Defs>
+
+      {/* Grid Lines & Y-Axis Labels */}
+      {gridLines.map((val, i) => {
+        const y = paddingTop + drawHeight - (val / maxVal) * drawHeight;
+        return (
+          <G key={`grid-${i}`}>
+            <Path
+              d={`M ${paddingLeft} ${y} L ${chartWidth - 10} ${y}`}
+              stroke="#F0F0F0"
+              strokeWidth="1"
+              strokeDasharray="4,4"
+            />
+            <SvgText
+              x={paddingLeft - 8}
+              y={y + 4}
+              fontSize="10"
+              fill={Colors.textMuted}
+              textAnchor="end"
+              fontFamily={Fonts.medium}
+            >
+              {val}
+            </SvgText>
+          </G>
+        );
+      })}
+
+      {/* Area Fill */}
+      <Path d={areaPath} fill="url(#areaGrad)" />
+
+      {/* Main Line */}
       <Path
-        d={path}
+        d={linePath}
         fill="none"
         stroke={color}
         strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {points.map((p, i) => (
-        <Circle key={i} cx={p.x} cy={p.y} r="4" fill={color} />
-      ))}
+
+      {/* Points & Labels */}
+      {points.map((p, i) => {
+        // Only show day labels for specific intervals if range is long
+        const showDayLabel =
+          data.length <= 7 || i % Math.ceil(data.length / 7) === 0;
+        // Only show calorie values if range is short OR it's the very last point
+        const showValueLabel = data.length <= 7 || i === data.length - 1;
+
+        return (
+          <G key={`point-${i}`}>
+            <Circle
+              cx={p.x}
+              cy={p.y}
+              r={data.length > 30 ? 2 : 4}
+              fill={color}
+            />
+            {/* Data Value Label */}
+            {showValueLabel && (
+              <SvgText
+                x={p.x}
+                y={p.y - 10}
+                fontSize="9"
+                fill={color}
+                textAnchor="middle"
+                fontWeight="bold"
+                fontFamily={Fonts.semiBold}
+              >
+                {p.val}
+              </SvgText>
+            )}
+            {/* Day Label */}
+            {showDayLabel && (
+              <SvgText
+                x={p.x}
+                y={height - 5}
+                fontSize="10"
+                fill={Colors.textMuted}
+                textAnchor="middle"
+                fontFamily={Fonts.medium}
+              >
+                {p.day}
+              </SvgText>
+            )}
+          </G>
+        );
+      })}
     </Svg>
   );
 };
@@ -93,7 +185,15 @@ const Chart = ({
 export default function CalorieProgress({
   data,
   onProfilePress,
+  onFilterChange,
+  activeDays = 7,
 }: CalorieProgressProps) {
+  const filters = [
+    { label: "7 Days", days: 7 },
+    { label: "30 Days", days: 30 },
+    { label: "90 Days", days: 90 },
+    { label: "All time", days: 365 },
+  ];
   // Logic: 0% if currentWeight is far from goal, 100% if currentWeight <= goalWeight
   // We'll use a 20kg historical range for progress visualization if no startWeight is available
   const weightProgress = Math.max(
@@ -163,21 +263,22 @@ export default function CalorieProgress({
 
       {/* Time Filters */}
       <View style={styles.filterRow}>
-        {["7 Days", "30 Days", "90 Days", "All time"].map((tab, i) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.filterTab, i === 0 && styles.activeTab]}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                i === 0 && styles.activeTab && styles.activeFilterText,
-              ]}
+        {filters.map((f: { label: string; days: number }) => {
+          const isActive = activeDays === f.days;
+          return (
+            <TouchableOpacity
+              key={f.label}
+              style={[styles.filterTab, isActive && styles.activeTab]}
+              onPress={() => onFilterChange?.(f.days)}
             >
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[styles.filterText, isActive && styles.activeFilterText]}
+              >
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Goal Progress Chart */}
@@ -190,7 +291,7 @@ export default function CalorieProgress({
           </View>
         </View>
         <View style={styles.chartContainer}>
-          <Chart data={chartValues} color={Colors.primary} />
+          <Chart data={data.chartData} color={Colors.primary} />
         </View>
         <View style={styles.promoBox}>
           <Text style={styles.promoText}>

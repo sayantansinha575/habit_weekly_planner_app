@@ -45,12 +45,15 @@ type ViewState = "dashboard" | "onboarding" | "profile" | "add-meal";
 import { useTaskStore } from "@/src/store/useTaskStore";
 
 export default function CalorieScreen() {
+  // const { user, calorieProgress, loadCalAiProgress } = useTaskStore();
   const user = useTaskStore((state) => state.user);
+  const calorieProgress = useTaskStore((state) => state.calorieProgress);
+  const loadCalAiProgress = useTaskStore((state) => state.loadCalAiProgress);
+
   const [currentView, setCurrentView] = useState<ViewState>("dashboard");
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [dashboardData, setDashboardData] = useState<any>(null);
-  const [progressData, setProgressData] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dashboardPageIndex, setDashboardPageIndex] = useState(0);
   const horizontalPagerRef = useRef<ScrollView>(null);
@@ -135,6 +138,17 @@ export default function CalorieScreen() {
     }, [currentView]),
   );
 
+  const [activeDays, setActiveDays] = useState(7);
+
+  const fetchProgressData = useCallback(
+    async (days: number) => {
+      if (!user?.id) return;
+      await loadCalAiProgress(user.id, days);
+      setActiveDays(days);
+    },
+    [user?.id, loadCalAiProgress],
+  );
+
   const init = useCallback(async () => {
     if (!user?.id) return;
     try {
@@ -154,8 +168,6 @@ export default function CalorieScreen() {
         });
         const dashData = await api.getCalAiDashboard(user.id);
         setDashboardData(dashData);
-        const progData = await api.getCalAiProgress(user.id);
-        setProgressData(progData);
         setCurrentView("dashboard");
       } else {
         setCurrentView("onboarding");
@@ -165,11 +177,18 @@ export default function CalorieScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id]); // Removed activeDays and fetchProgressData from dependencies
 
   useEffect(() => {
     init();
   }, [init]);
+
+  useEffect(() => {
+    // Separate effect for progress fetching to avoid re-running full init
+    if (user?.id && currentView === "dashboard") {
+      fetchProgressData(activeDays);
+    }
+  }, [user?.id, activeDays, fetchProgressData, currentView]);
 
   const handleSaveProfile = async () => {
     try {
@@ -591,9 +610,11 @@ export default function CalorieScreen() {
 
       {/* Page 2: Progress Section */}
       <View style={{ width }}>
-        {progressData ? (
+        {calorieProgress ? (
           <CalorieProgress
-            data={progressData}
+            data={calorieProgress}
+            activeDays={activeDays}
+            onFilterChange={fetchProgressData}
             onProfilePress={() => setCurrentView("profile")}
           />
         ) : (

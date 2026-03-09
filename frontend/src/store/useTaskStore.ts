@@ -1,3 +1,4 @@
+// Zustand store for tasks and calorie progress
 import { create } from "zustand";
 import { storage } from "../utils/storage";
 import { notificationUtils } from "../utils/notifications";
@@ -39,6 +40,8 @@ interface TaskState {
   isAuthenticating: boolean;
   isOnboarding: boolean;
 
+  calorieProgress: any | null;
+
   // Actions
   setIsAuthenticating: (isAuthenticating: boolean) => void;
   setIsAuthReady: (ready: boolean) => void;
@@ -47,6 +50,7 @@ interface TaskState {
   signOut: () => Promise<void>;
   loadTasks: (userId: string) => Promise<void>;
   loadStats: (userId: string) => Promise<void>;
+  loadCalAiProgress: (userId: string, days: number) => Promise<void>;
   addTask: (userId: string, taskData: any) => Promise<void>;
   toggleTask: (taskId: string) => Promise<void>;
   updateTask: (taskId: string, taskData: any) => Promise<void>;
@@ -65,6 +69,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   isAuthReady: false,
   isAuthenticating: false,
   isOnboarding: false,
+  calorieProgress: null,
 
   setIsAuthenticating: (isAuthenticating) => set({ isAuthenticating }),
   setIsAuthReady: (ready) => set({ isAuthReady: ready }),
@@ -156,6 +161,27 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }
     } catch (e) {
       console.error("Store loadStats failed", e);
+    }
+  },
+
+  loadCalAiProgress: async (userId, days) => {
+    try {
+      const { local, sync } = await storage.getCalAiProgress(userId, days);
+      const currentProgress = get().calorieProgress;
+
+      if (local && JSON.stringify(local) !== JSON.stringify(currentProgress)) {
+        set({ calorieProgress: local });
+      }
+
+      const synced = await sync;
+      if (
+        synced &&
+        JSON.stringify(synced) !== JSON.stringify(get().calorieProgress)
+      ) {
+        set({ calorieProgress: synced });
+      }
+    } catch (e) {
+      console.error("Store loadCalAiProgress failed", e);
     }
   },
 

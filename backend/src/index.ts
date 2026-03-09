@@ -291,7 +291,8 @@ app.get(
   verifySupabaseToken,
   async (req, res) => {
     try {
-      const data = await getCalAiProgress(req.params.userId as string);
+      const days = req.query.days ? parseInt(req.query.days as string) : 7;
+      const data = await getCalAiProgress(req.params.userId as string, days);
       res.json(data);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
