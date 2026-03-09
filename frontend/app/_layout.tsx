@@ -20,6 +20,7 @@ import * as Notifications from "expo-notifications";
 import { supabase } from "@/src/services/supabase";
 import { useTaskStore } from "@/src/store/useTaskStore";
 import { authService } from "@/src/services/authService";
+import { iapService } from "@/src/services/iapService";
 
 // Handle notifications when the app is in foreground
 Notifications.setNotificationHandler({
@@ -77,6 +78,13 @@ export default function RootLayout() {
         data: { session },
       } = await supabase.auth.getSession();
       await setSession(session);
+
+      // Initialize RevenueCat
+      if (session?.user?.id) {
+        await iapService.configure(session.user.id);
+      } else {
+        await iapService.configure();
+      }
     };
 
     init();

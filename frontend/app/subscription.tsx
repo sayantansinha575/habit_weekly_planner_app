@@ -43,6 +43,7 @@ const SubscriptionScreen = () => {
   const loadOfferings = async () => {
     setLoading(true);
     const data = await iapService.getOfferings();
+    console.log("Offerings:", data);
     setOfferings(data);
     if (data?.availablePackages && data.availablePackages.length > 0) {
       // Auto-select Yearly (ANNUAL) if available, otherwise first

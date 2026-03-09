@@ -1,5 +1,7 @@
 import { Tabs, useRouter, useRootNavigationState } from "expo-router";
 import React, { useEffect } from "react";
+import Purchases, { LOG_LEVEL } from "react-native-purchases";
+import { Platform } from "react-native";
 import {
   LayoutDashboard,
   Calendar,
@@ -14,6 +16,14 @@ import useColorScheme from "@/hooks/use-color-scheme";
 import { useTaskStore } from "@/src/store/useTaskStore";
 
 export default function TabLayout() {
+  try {
+    const customerInfo = Purchases.getCustomerInfo();
+    console.log("Customer Info:", customerInfo);
+    // access latest customerInfo
+  } catch (e) {
+    // Error fetching customer info
+  }
+
   const colorScheme = useColorScheme();
   const router = useRouter();
   const session = useTaskStore((state) => state.session);

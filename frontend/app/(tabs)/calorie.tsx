@@ -548,9 +548,38 @@ export default function CalorieScreen() {
             <Card key={meal.id} style={styles.mealCard}>
               <View style={styles.mealInfo}>
                 <Text style={styles.mealDesc}>{meal.description}</Text>
-                <Text style={styles.mealMacros}>
-                  P: {meal.protein}g | C: {meal.carbs}g | F: {meal.fats}g
-                </Text>
+                <View style={styles.mealMacroPills}>
+                  <View
+                    style={[
+                      styles.macroPill,
+                      { backgroundColor: "rgba(255,77,77,0.08)" },
+                    ]}
+                  >
+                    <Text style={[styles.macroPillText, { color: "#FF4D4D" }]}>
+                      P: {meal.protein}g
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.macroPill,
+                      { backgroundColor: "rgba(255,184,77,0.08)" },
+                    ]}
+                  >
+                    <Text style={[styles.macroPillText, { color: "#FFB84D" }]}>
+                      C: {meal.carbs}g
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.macroPill,
+                      { backgroundColor: "rgba(77,148,255,0.08)" },
+                    ]}
+                  >
+                    <Text style={[styles.macroPillText, { color: "#4D94FF" }]}>
+                      F: {meal.fats}g
+                    </Text>
+                  </View>
+                </View>
               </View>
               <Text style={styles.mealCals}>{meal.calories} kcal</Text>
             </Card>
@@ -1042,6 +1071,21 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontFamily: Fonts.regular,
     marginTop: 4,
+  },
+  mealMacroPills: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 8,
+  },
+  macroPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  macroPillText: {
+    fontSize: 10,
+    fontWeight: "bold",
+    fontFamily: Fonts.bold,
   },
   mealCals: {
     fontSize: 16,

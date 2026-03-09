@@ -1,18 +1,22 @@
-import Purchases, { PurchasesOffering } from "react-native-purchases";
+import Purchases, {
+  PurchasesOffering,
+  LOG_LEVEL,
+} from "react-native-purchases";
 import { Platform } from "react-native";
 
 const API_KEY_ANDROID = "goog_vsQYGRBUhdYHRtjDBibndSkvMLD";
 
 export const iapService = {
-  configure: async (userId: string) => {
+  configure: async (userId?: string) => {
+    Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
     try {
       if (Platform.OS === "android") {
         await Purchases.configure({
           apiKey: API_KEY_ANDROID,
-          appUserID: userId,
+          appUserID: userId || null,
         });
+        console.log("RevenueCat configured for Android");
       }
-      // Add iOS config if needed in future
     } catch (e) {
       console.error("RevenueCat Configuration Error:", e);
     }
@@ -21,6 +25,7 @@ export const iapService = {
   getOfferings: async (): Promise<PurchasesOffering | null> => {
     try {
       const offerings = await Purchases.getOfferings();
+      console.log("Offerings:", offerings);
       if (offerings.current !== null) {
         return offerings.current;
       }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -15,6 +15,8 @@ import { useRouter } from "expo-router";
 import { authService } from "../src/services/authService";
 import { useTaskStore } from "../src/store/useTaskStore";
 import { api } from "../src/services/api";
+import Purchases, { LOG_LEVEL } from "react-native-purchases";
+import { Platform } from "react-native";
 
 const LoginScreen = () => {
   const router = useRouter();
