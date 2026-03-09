@@ -38,6 +38,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import CalorieProgress from "@/src/components/CalorieProgress";
+import ScannerOverlay from "@/src/components/ScannerOverlay";
+import { Animated, Easing } from "react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -82,9 +84,10 @@ export default function CalorieScreen() {
 
   // Add Meal State
   const [mealDescription, setMealDescription] = useState("");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const screenFade = useRef(new Animated.Value(1)).current;
 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -219,17 +222,34 @@ export default function CalorieScreen() {
       return;
     }
     try {
-      setIsAnalyzing(true);
+      setIsScanning(true);
       await api.analyzeMeal(user.id, mealDescription, imageBase64 || undefined);
       setMealDescription("");
-      setSelectedImage(null);
-      setImageBase64(null);
-      await init(); // Refresh dashboard
-      setCurrentView("dashboard");
+
+      // Smooth transition back
+      setTimeout(async () => {
+        // Fade out screen
+        Animated.timing(screenFade, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }).start(async () => {
+          setSelectedImage(null);
+          setImageBase64(null);
+          await init(); // Refresh dashboard data
+          setCurrentView("dashboard");
+          setIsScanning(false);
+          // Fade back in
+          Animated.timing(screenFade, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }).start();
+        });
+      }, 1000); // Small delay to let user see "Finalizing..."
     } catch (e) {
+      setIsScanning(false);
       Alert.alert("Error", "Failed to analyze meal");
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 
@@ -691,11 +711,11 @@ export default function CalorieScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.primaryBtn, isAnalyzing && { opacity: 0.7 }]}
+          style={[styles.primaryBtn, isScanning && { opacity: 0.7 }]}
           onPress={handleAnalyzeMeal}
-          disabled={isAnalyzing}
+          disabled={isScanning}
         >
-          {isAnalyzing ? (
+          {isScanning ? (
             <ActivityIndicator color="#000" />
           ) : (
             <>
@@ -790,10 +810,14 @@ export default function CalorieScreen() {
         colors={["#E3F2FD", "#F3E5F5", "#FCE4EC"]}
         style={StyleSheet.absoluteFill}
       />
-      {currentView === "dashboard" && renderDashboard()}
-      {currentView === "onboarding" && renderOnboarding()}
-      {currentView === "add-meal" && renderAddMeal()}
-      {currentView === "profile" && renderProfile()}
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: screenFade }]}>
+        {currentView === "dashboard" && renderDashboard()}
+        {currentView === "onboarding" && renderOnboarding()}
+        {currentView === "add-meal" && renderAddMeal()}
+        {currentView === "profile" && renderProfile()}
+      </Animated.View>
+
+      <ScannerOverlay isVisible={isScanning} imageUri={selectedImage} />
     </SafeAreaView>
   );
 }
