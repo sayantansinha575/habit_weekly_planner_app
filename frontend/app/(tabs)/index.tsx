@@ -8,7 +8,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { Flame, Plus, Sun, Cloud, Moon, CloudSun } from "lucide-react-native";
+import {
+  Flame,
+  Plus,
+  Sun,
+  Cloud,
+  Moon,
+  CloudSun,
+  User,
+} from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Fonts } from "@/src/theme/colors";
 import Card from "@/src/components/Card";
@@ -18,10 +26,12 @@ import { storage } from "@/src/utils/storage";
 import { useFocusEffect } from "@react-navigation/native";
 import ProgressRing from "@/src/components/ProgressRing";
 import { StatusBar } from "expo-status-bar";
+import { useRouter } from "expo-router";
 import { useTaskStore } from "@/src/store/useTaskStore";
 import { shallow } from "zustand/shallow";
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const user = useTaskStore((state) => state.user);
   const tasks = useTaskStore((state) => state.tasks);
   const stats = useTaskStore((state) => state.stats);
@@ -127,10 +137,22 @@ export default function DashboardScreen() {
             colors={["rgba(255,255,255,0.4)", "transparent"]}
             style={styles.headerGlow}
           />
-          <Text style={styles.greeting}>{getGreeting()},</Text>
-          <View style={styles.nameRow}>
-            <Text style={styles.name}>{weather.temp}°C</Text>
-            {getWeatherIcon()}
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.greeting}>{getGreeting()},</Text>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>{weather.temp}°C</Text>
+                {getWeatherIcon()}
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.profileBtn}
+              onPress={() => router.push("/profile")}
+            >
+              <View style={styles.profileIconContainer}>
+                <User color={Colors.primary} size={24} />
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -316,6 +338,34 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: 20,
     position: "relative",
+  },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  profileBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    // elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  profileIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.5)",
   },
   headerGlow: {
     position: "absolute",

@@ -8,7 +8,7 @@ const getBackendUrl = () => {
 
   // DEV CONFIG: Local IP for physical device
   const isProduction = false;
-  const LOCAL_IP = "192.168.0.101";
+  const LOCAL_IP = "192.168.0.102";
 
   if (Platform.OS === "android") {
     // Return local IP for physical Android device

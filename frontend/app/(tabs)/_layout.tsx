@@ -31,22 +31,7 @@ export default function TabLayout() {
   const checkTrialStatus = useTaskStore((state) => state.checkTrialStatus);
   const rootNavigationState = useRootNavigationState();
 
-  useEffect(() => {
-    // Wait for auth to be fully initialized AND router to be mounted
-    if (!isAuthReady || !rootNavigationState?.key) return;
-
-    if (!session) {
-      router.replace("/login");
-      return;
-    }
-
-    if (checkTrialStatus() === "expired") {
-      router.replace({
-        pathname: "/subscription",
-        params: { isMandatory: "true" },
-      });
-    }
-  }, [session, isAuthReady, rootNavigationState?.key]);
+  // Global auth redirection is now handled in RootLayout
 
   return (
     <Tabs

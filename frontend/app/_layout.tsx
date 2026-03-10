@@ -3,7 +3,12 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { Slot } from "expo-router";
+import {
+  Slot,
+  useRouter,
+  useRootNavigationState,
+  useSegments,
+} from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import * as SplashScreen from "expo-splash-screen";
@@ -42,7 +47,12 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const setSession = useTaskStore((state) => state.setSession);
+  const isAuthReady = useTaskStore((state) => state.isAuthReady);
   const setIsAuthReady = useTaskStore((state) => state.setIsAuthReady);
+  const session = useTaskStore((state) => state.session);
+  const router = useRouter();
+  const segments = useSegments();
+  const rootNavigationState = useRootNavigationState();
 
   const [loaded, error] = useFonts({
     Outfit_400Regular,
@@ -98,16 +108,34 @@ export default function RootLayout() {
 
     return () => subscription.unsubscribe();
   }, []);
+
   useEffect(() => {
-    if (loaded || error) {
+    if (!isAuthReady || !rootNavigationState?.key) return;
+
+    const inAuthGroup =
+      segments[0] !== "login" && segments[0] !== "auth-callback";
+
+    if (!session && inAuthGroup) {
+      // Redirect to the login page if not authenticated
+      router.replace("/login");
+    } else if (session && segments[0] === "login") {
+      // Redirect to the tabs page if authenticated
+      router.replace("/(tabs)");
+    }
+  }, [session, isAuthReady, segments, rootNavigationState?.key]);
+  useEffect(() => {
+    if ((loaded || error) && isAuthReady) {
       SplashScreen.hideAsync();
       notificationUtils.requestPermissions();
     }
-  }, [loaded, error]);
+  }, [loaded, error, isAuthReady]);
 
   if (!loaded && !error) {
-    // Keep rendering Slot to prevent navigation errors,
-    // SplashScreen hides only in the useEffect above.
+    return null;
+  }
+
+  if (!isAuthReady) {
+    return null;
   }
 
   return (
