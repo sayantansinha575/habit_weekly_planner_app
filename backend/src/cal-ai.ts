@@ -270,6 +270,14 @@ export const analyzeMeal = async (
 
     if (!analysis) throw new Error("Empty response from AI");
 
+    // Depth analysis / reasoning logging
+    if (analysis.reasoning) {
+      console.info(
+        "Meal Analysis Reasoning:",
+        JSON.stringify(analysis.reasoning, null, 2),
+      );
+    }
+
     // ✅ Save to DB (THIS STAYS IN RENDER)
     const meal = await prisma.calAiMeal.create({
       data: {
