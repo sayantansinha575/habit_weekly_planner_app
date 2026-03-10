@@ -324,7 +324,10 @@ export default function ProfileScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Support</Text>
             <Card style={styles.linksCard}>
-              <TouchableOpacity style={styles.linkRow}>
+              <TouchableOpacity
+                style={styles.linkRow}
+                onPress={() => router.push("/about")}
+              >
                 <View style={styles.linkIconWrapper}>
                   <Info size={20} color={Colors.primary} />
                 </View>
@@ -334,7 +337,10 @@ export default function ProfileScreen() {
 
               <View style={styles.separator} />
 
-              <TouchableOpacity style={styles.linkRow}>
+              <TouchableOpacity
+                style={styles.linkRow}
+                onPress={() => router.push("/privacy")}
+              >
                 <View style={styles.linkIconWrapper}>
                   <Shield size={20} color="#4CAF50" />
                 </View>
