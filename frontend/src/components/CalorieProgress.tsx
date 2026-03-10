@@ -233,7 +233,22 @@ export default function CalorieProgress({
           </View>
           <Text style={styles.goalText}>Goal {data.goalWeight} kg</Text>
           <View style={styles.divider} />
-          <Text style={styles.footerText}>Next weigh-in: 2d</Text>
+          <Text style={styles.footerText}>
+            {(() => {
+              const lastUpdate = new Date(
+                (data as any).updatedAt || new Date(),
+              );
+              const nextWeighIn = new Date(lastUpdate);
+              nextWeighIn.setDate(nextWeighIn.getDate() + 7);
+              const now = new Date();
+              const diffMs = nextWeighIn.getTime() - now.getTime();
+              const diffDays = Math.max(
+                0,
+                Math.ceil(diffMs / (1000 * 60 * 60 * 24)),
+              );
+              return `Next weigh-in: ${diffDays}d`;
+            })()}
+          </Text>
         </Card>
 
         {/* Streak Card */}

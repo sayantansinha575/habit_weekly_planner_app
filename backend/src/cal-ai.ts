@@ -91,9 +91,9 @@ export const getCalAiDashboard = async (userId: string) => {
   const meals = await prisma.calAiMeal.findMany({
     where: {
       userId,
-      date: {
-        gte: today,
-      },
+      // date: {
+      //   gte: today,
+      // },
     },
   });
 
@@ -343,6 +343,7 @@ export const getCalAiProgress = async (userId: string, days: number = 7) => {
     bmiCategory,
     chartData,
     streak: (profile as any).streak || 0,
+    updatedAt: profile.updatedAt,
   };
 };
 
@@ -353,9 +354,9 @@ export const resetTodayMeals = async (userId: string) => {
   return await prisma.calAiMeal.deleteMany({
     where: {
       userId,
-      date: {
-        gte: today,
-      },
+      // date: {
+      //   gte: today,
+      // },
     },
   });
 };
