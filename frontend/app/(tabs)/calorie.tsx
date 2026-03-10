@@ -28,6 +28,7 @@ import {
   Zap,
   Target,
   Apple,
+  RefreshCw,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Fonts } from "@/src/theme/colors";
@@ -87,6 +88,9 @@ export default function CalorieScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isOnboardingLoading, setIsOnboardingLoading] = useState(false);
+  const loadingRotation = useRef(new Animated.Value(0)).current;
+  const loadingFade = useRef(new Animated.Value(0)).current;
   const screenFade = useRef(new Animated.Value(1)).current;
 
   const takePhoto = async () => {
@@ -186,6 +190,38 @@ export default function CalorieScreen() {
   }, [init]);
 
   useEffect(() => {
+    if (isOnboardingLoading) {
+      Animated.parallel([
+        Animated.timing(loadingFade, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.loop(
+          Animated.timing(loadingRotation, {
+            toValue: 1,
+            duration: 2000,
+            easing: Easing.linear,
+            useNativeDriver: true,
+          }),
+        ),
+      ]).start();
+    } else {
+      Animated.timing(loadingFade, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isOnboardingLoading]);
+
+  const isFormValid =
+    formData.goalWeight.trim() !== "" &&
+    formData.currentWeight.trim() !== "" &&
+    formData.height.trim() !== "" &&
+    formData.dailyStepGoal.trim() !== "";
+
+  useEffect(() => {
     // Separate effect for progress fetching to avoid re-running full init
     if (user?.id && currentView === "dashboard") {
       fetchProgressData(activeDays);
@@ -193,8 +229,10 @@ export default function CalorieScreen() {
   }, [user?.id, activeDays, fetchProgressData, currentView]);
 
   const handleSaveProfile = async () => {
+    if (!isFormValid) return;
+
     try {
-      setLoading(true);
+      setIsOnboardingLoading(true);
       const payload = {
         goalWeight: parseFloat(formData.goalWeight),
         currentWeight: parseFloat(formData.currentWeight),
@@ -203,15 +241,36 @@ export default function CalorieScreen() {
         gender: formData.gender,
         dailyStepGoal: parseInt(formData.dailyStepGoal),
       };
-      const updated = await api.updateCalAiProfile(user.id, payload);
+
+      // Ensure animation shows for at least 1.5s for UX
+      const [updated] = await Promise.all([
+        api.updateCalAiProfile(user.id, payload),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+      ]);
+
       setProfile(updated);
-      await init(); // Refresh all
+
+      // Refresh data
+      const dashData = await api.getCalAiDashboard(user.id);
+      setDashboardData(dashData);
+
+      // Smooth transition
+      Animated.timing(screenFade, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }).start(() => {
+        setCurrentView("dashboard");
+        setIsOnboardingLoading(false);
+        Animated.timing(screenFade, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }).start();
+      });
     } catch (e) {
+      setIsOnboardingLoading(false);
       Alert.alert("Error", "Failed to save profile");
-    } finally {
-      setLoading(false);
-      // After update, go back to dashboard
-      setCurrentView("dashboard");
     }
   };
 
@@ -341,8 +400,19 @@ export default function CalorieScreen() {
           }
         />
 
-        <TouchableOpacity style={styles.primaryBtn} onPress={handleSaveProfile}>
-          <Text style={styles.primaryBtnText}>Get Started</Text>
+        <TouchableOpacity
+          style={[styles.primaryBtn, !isFormValid && styles.disabledBtn]}
+          onPress={handleSaveProfile}
+          disabled={!isFormValid}
+        >
+          <Text
+            style={[
+              styles.primaryBtnText,
+              !isFormValid && styles.disabledBtnText,
+            ]}
+          >
+            Get Started
+          </Text>
         </TouchableOpacity>
       </Card>
     </ScrollView>
@@ -816,6 +886,41 @@ export default function CalorieScreen() {
         {currentView === "profile" && renderProfile()}
       </Animated.View>
 
+      {isOnboardingLoading && (
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            styles.loadingOverlay,
+            { opacity: loadingFade },
+          ]}
+        >
+          <LinearGradient
+            colors={["#6366F1", "#A855F7", "#EC4899"]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.loadingInner}>
+            <Animated.View
+              style={{
+                transform: [
+                  {
+                    rotate: loadingRotation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ["0deg", "360deg"],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <RefreshCw color="#FFF" size={48} />
+            </Animated.View>
+            <Text style={styles.loadingTitle}>Configuring Your Profile</Text>
+            <Text style={styles.loadingSubtitle}>
+              Personalizing your nutrition plan and setting your goals...
+            </Text>
+          </View>
+        </Animated.View>
+      )}
+
       <ScannerOverlay isVisible={isScanning} imageUri={selectedImage} />
     </SafeAreaView>
   );
@@ -901,6 +1006,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     fontFamily: Fonts.bold,
+  },
+  disabledBtn: {
+    backgroundColor: "rgba(0,0,0,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
+  },
+  disabledBtnText: {
+    color: Colors.textMuted,
+  },
+  loadingOverlay: {
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+  loadingInner: {
+    alignItems: "center",
+    padding: 40,
+  },
+  loadingTitle: {
+    fontSize: 24,
+    color: "#FFF",
+    fontFamily: Fonts.bold,
+    marginTop: 24,
+    textAlign: "center",
+  },
+  loadingSubtitle: {
+    fontSize: 16,
+    color: "rgba(255,255,255,0.8)",
+    fontFamily: Fonts.regular,
+    marginTop: 12,
+    textAlign: "center",
+    lineHeight: 24,
   },
   dashboardContent: {
     padding: 20,
