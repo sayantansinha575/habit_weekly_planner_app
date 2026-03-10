@@ -140,8 +140,10 @@ model CalAiProfile {
   dateOfBirth   DateTime
   gender        String
   dailyStepGoal Int
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  streak            Int      @default(0)
+  lastStreakUpdate  DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user  User        @relation(fields: [userId], references: [id])
   meals CalAiMeal[]

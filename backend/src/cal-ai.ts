@@ -91,6 +91,9 @@ export const getCalAiDashboard = async (userId: string) => {
   const meals = await prisma.calAiMeal.findMany({
     where: {
       userId,
+      date: {
+        gte: today,
+      },
     },
   });
 
@@ -102,8 +105,48 @@ export const getCalAiDashboard = async (userId: string) => {
   const { dailyTarget, proteinTarget, carbsTarget, fatsTarget } =
     calculateDailyTargets(profile);
 
+  const caloriesLeft = dailyTarget - totalCalories;
+
+  // Dedicated Calorie Streak Logic
+  let currentStreak = (profile as any).streak || 0;
+  const lastUpdate = (profile as any).lastStreakUpdate
+    ? new Date((profile as any).lastStreakUpdate)
+    : null;
+  if (lastUpdate) lastUpdate.setHours(0, 0, 0, 0);
+
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // If goal met today
+  if (caloriesLeft <= 0) {
+    if (!lastUpdate || lastUpdate.getTime() < today.getTime()) {
+      let newStreak = 1;
+      if (lastUpdate && lastUpdate.getTime() === yesterday.getTime()) {
+        newStreak = currentStreak + 1;
+      }
+
+      const updatedProfile = await prisma.calAiProfile.update({
+        where: { userId },
+        data: {
+          streak: newStreak,
+          lastStreakUpdate: today,
+        } as any,
+      });
+      currentStreak = (updatedProfile as any).streak;
+    }
+  } else {
+    // Goal not met today yet, check if yesterday was missed to reset streak
+    if (lastUpdate && lastUpdate.getTime() < yesterday.getTime()) {
+      const updatedProfile = await prisma.calAiProfile.update({
+        where: { userId },
+        data: { streak: 0 } as any,
+      });
+      currentStreak = (updatedProfile as any).streak;
+    }
+  }
+
   return {
-    caloriesLeft: dailyTarget - totalCalories,
+    caloriesLeft: Math.max(0, caloriesLeft),
     totalCalories,
     totalProtein,
     totalCarbs,
@@ -113,7 +156,7 @@ export const getCalAiDashboard = async (userId: string) => {
     carbsTarget,
     fatsTarget,
     meals,
-    streak: 0,
+    streak: currentStreak,
   };
 };
 
@@ -299,7 +342,7 @@ export const getCalAiProgress = async (userId: string, days: number = 7) => {
     bmi: parseFloat(bmi.toFixed(2)),
     bmiCategory,
     chartData,
-    streak: profile.user ? (profile.user as any).dailyStreak || 0 : 0,
+    streak: (profile as any).streak || 0,
   };
 };
 
