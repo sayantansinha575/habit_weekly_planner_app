@@ -42,9 +42,82 @@ export default function DashboardScreen() {
   const addTask = useTaskStore((state) => state.addTask);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [weather, setWeather] = useState({ temp: 24 });
+  const [weather, setWeather] = useState<{
+    temp: number | null;
+    city: string | null;
+    country: string | null;
+  }>({ temp: null, city: null, country: null });
+  const [weatherLoading, setWeatherLoading] = useState(true);
   const [isModalVisible, setModalVisible] = useState(false);
   const isFetchingRef = React.useRef(false);
+
+  const fetchWeather = async () => {
+    try {
+      setWeatherLoading(true);
+
+      // 1. Get location from IP (Try ipapi.co first, then freeipapi.com as fallback)
+      let locationData = null;
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        console.log("IP API Response:", res);
+        if (res.ok) locationData = await res.json();
+      } catch (e) {
+        console.warn("ipapi.co failed, trying fallback...");
+      }
+
+      console.log("Location Data:", locationData);
+      if (!locationData) {
+        try {
+          const res = await fetch("https://freeipapi.com/api/json");
+          console.log("Free IP API Response:", res);
+          if (res.ok) {
+            const data = await res.json();
+            locationData = {
+              latitude: data.latitude,
+              longitude: data.longitude,
+              city: data.cityName,
+              country_name: data.countryName,
+            };
+          }
+        } catch (e) {
+          console.error("All location APIs failed");
+        }
+      }
+
+      if (locationData && locationData.latitude && locationData.longitude) {
+        // 2. Get weather from Open-Meteo
+        const weatherRes = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${locationData.latitude}&longitude=${locationData.longitude}&current_weather=true`,
+        );
+        console.log("Weather Response:", weatherRes);
+
+        if (!weatherRes.ok) {
+          throw new Error(`Weather API error: ${weatherRes.status}`);
+        }
+
+        const weatherData = await weatherRes.json();
+        console.log("Weather Data:", weatherData);
+
+        if (weatherData.current_weather) {
+          setWeather({
+            temp: Math.round(weatherData.current_weather.temperature),
+            city: locationData.city || "Unknown City",
+            country: locationData.country_name || "Unknown Country",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch weather:", error);
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
+  console.log("Weather:", weather);
+
+  React.useEffect(() => {
+    fetchWeather();
+  }, []);
 
   const weekDays = React.useMemo(() => {
     const days = [];
@@ -141,8 +214,21 @@ export default function DashboardScreen() {
             <View>
               <Text style={styles.greeting}>{getGreeting()},</Text>
               <View style={styles.nameRow}>
-                <Text style={styles.name}>{weather.temp}°C</Text>
-                {getWeatherIcon()}
+                {weatherLoading ? (
+                  <Text style={styles.greeting}>Fetching weather...</Text>
+                ) : (
+                  <>
+                    {weather.temp !== null && (
+                      <Text style={styles.name}>{weather.temp}°C</Text>
+                    )}
+                    {weather.city ? (
+                      <Text style={styles.cityText}>
+                        {weather.city}, {weather.country}
+                      </Text>
+                    ) : null}
+                    {getWeatherIcon()}
+                  </>
+                )}
               </View>
             </View>
             <TouchableOpacity
@@ -390,6 +476,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     fontFamily: Fonts.bold,
+  },
+  cityText: {
+    color: Colors.textMuted,
+    fontSize: 16,
+    fontFamily: Fonts.medium,
+    marginLeft: 4,
   },
   streakCard: {
     borderRadius: 24,

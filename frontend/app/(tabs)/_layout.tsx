@@ -14,15 +14,24 @@ import { HapticTab } from "@/components/haptic-tab";
 import { Colors, Fonts } from "@/src/theme/colors";
 import useColorScheme from "@/hooks/use-color-scheme";
 import { useTaskStore } from "@/src/store/useTaskStore";
+import { iapService } from "@/src/services/iapService";
+
+const fetchCustomer = async () => {
+  const customerInfo = await iapService.getCustomerInfo();
+  console.log("Customer Info:", customerInfo);
+};
+
+fetchCustomer();
 
 export default function TabLayout() {
-  try {
-    const customerInfo = Purchases.getCustomerInfo();
-    console.log("Customer Info:", customerInfo);
-    // access latest customerInfo
-  } catch (e) {
-    // Error fetching customer info
-  }
+  // try {
+  //   const customerInfo =  iapService.getCustomerInfo();
+  //   console.log("Customer Info:", customerInfo);
+  //   // access latest customerInfo
+  // } catch (e) {
+  //   console.error("Error fetching customer info:", e);
+  //   // Error fetching customer info
+  // }
 
   const colorScheme = useColorScheme();
   const router = useRouter();
