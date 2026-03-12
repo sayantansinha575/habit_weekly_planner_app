@@ -26,14 +26,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     marginVertical: 10,
-    // Soft shadow for light mode
-    shadowColor: "#000",
+    //Soft shadow for light mode
+    shadowColor: "#FFF",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 3,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.02)",
+    borderColor: "#FFF",
   },
 });
 
