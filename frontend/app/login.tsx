@@ -49,7 +49,11 @@ const LoginScreen = () => {
         <View style={styles.content}>
           <View style={styles.hero}>
             <View style={styles.logoContainer}>
-              <Diamond size={60} color="#6366f1" />
+              <Image
+                source={require("../assets/images/AppIcons/appstore.png")}
+                style={{ width: "80%", height: "80%", borderRadius: 30 }}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.title}>Weekora</Text>
             <Text style={styles.subtitle}>
@@ -99,13 +103,13 @@ const styles = StyleSheet.create({
   logoContainer: {
     width: 100,
     height: 100,
-    borderRadius: 30,
-    backgroundColor: "rgba(99, 102, 241, 0.1)",
+    // borderRadius: 30,
+    // backgroundColor: "rgba(99, 102, 241, 0.1)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: "rgba(99, 102, 241, 0.2)",
+    // borderWidth: 1,
+    // borderColor: "rgba(99, 102, 241, 0.2)",
   },
   title: { fontSize: 36, fontWeight: "900", color: "#fff", marginBottom: 12 },
   subtitle: {

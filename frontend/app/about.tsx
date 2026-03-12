@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Linking,
 } from "react-native";
 import { ChevronLeft, Diamond, Github, Globe, Mail } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -37,12 +38,11 @@ export default function AboutScreen() {
       >
         <View style={styles.logoSection}>
           <View style={styles.logoContainer}>
-            <LinearGradient
-              colors={[Colors.primary, "#24243e"]}
-              style={styles.logoGradient}
-            >
-              <Diamond size={50} color="#FFF" />
-            </LinearGradient>
+            <Image
+              source={require("../assets/images/AppIcons/appstore.png")}
+              style={{ width: "100%", height: "100%" }}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.appName}>Weekora</Text>
           <Text style={styles.appVersion}>Version 1.0.0</Text>
@@ -61,17 +61,23 @@ export default function AboutScreen() {
 
         <Card style={styles.card}>
           <Text style={styles.sectionTitle}>Connect With Us</Text>
-          <TouchableOpacity style={styles.linkRow}>
+          <TouchableOpacity
+            style={styles.linkRow}
+            onPress={() => Linking.openURL("https://zruit.in/")}
+          >
             <Globe size={20} color={Colors.primary} />
             <Text style={styles.linkText}>Visit Website</Text>
           </TouchableOpacity>
           <View style={styles.separator} />
-          <TouchableOpacity style={styles.linkRow}>
+          {/* <TouchableOpacity style={styles.linkRow}>
             <Github size={20} color={Colors.primary} />
             <Text style={styles.linkText}>GitHub Repository</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <View style={styles.separator} />
-          <TouchableOpacity style={styles.linkRow}>
+          <TouchableOpacity
+            style={styles.linkRow}
+            onPress={() => Linking.openURL("mailto:Support@weekora.ai")}
+          >
             <Mail size={20} color={Colors.primary} />
             <Text style={styles.linkText}>Support Email</Text>
           </TouchableOpacity>

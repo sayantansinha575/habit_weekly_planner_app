@@ -59,17 +59,17 @@ export default function DashboardScreen() {
       let locationData = null;
       try {
         const res = await fetch("https://ipapi.co/json/");
-        console.log("IP API Response:", res);
-        if (res.ok) locationData = await res.json();
+        // console.log("IP API Response:", res);
+        // if (res.ok) locationData = await res.json();
       } catch (e) {
         console.warn("ipapi.co failed, trying fallback...");
       }
 
-      console.log("Location Data:", locationData);
+      // console.log("Location Data:", locationData);
       if (!locationData) {
         try {
           const res = await fetch("https://freeipapi.com/api/json");
-          console.log("Free IP API Response:", res);
+          // console.log("Free IP API Response:", res);
           if (res.ok) {
             const data = await res.json();
             locationData = {
@@ -89,14 +89,14 @@ export default function DashboardScreen() {
         const weatherRes = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${locationData.latitude}&longitude=${locationData.longitude}&current_weather=true`,
         );
-        console.log("Weather Response:", weatherRes);
+        // console.log("Weather Response:", weatherRes);
 
         if (!weatherRes.ok) {
           throw new Error(`Weather API error: ${weatherRes.status}`);
         }
 
         const weatherData = await weatherRes.json();
-        console.log("Weather Data:", weatherData);
+        // console.log("Weather Data:", weatherData);
 
         if (weatherData.current_weather) {
           setWeather({
@@ -113,7 +113,7 @@ export default function DashboardScreen() {
     }
   };
 
-  console.log("Weather:", weather);
+  // console.log("Weather:", weather);
 
   React.useEffect(() => {
     fetchWeather();
