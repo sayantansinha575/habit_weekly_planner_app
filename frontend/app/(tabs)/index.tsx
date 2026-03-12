@@ -23,6 +23,7 @@ import Card from "@/src/components/Card";
 import TaskItem from "@/src/components/TaskItem";
 import GoalModal from "@/src/components/GoalModal";
 import { storage } from "@/src/utils/storage";
+import EmptyState from "@/src/components/EmptyState";
 import { useFocusEffect } from "@react-navigation/native";
 import ProgressRing from "@/src/components/ProgressRing";
 import { StatusBar } from "expo-status-bar";
@@ -387,9 +388,10 @@ export default function DashboardScreen() {
             ))}
 
             {currentDatetasks.length === 0 && (
-              <View style={styles.emptyTasks}>
-                <Text style={styles.emptyText}>No goals set for today</Text>
-              </View>
+              <EmptyState
+                imageSource={require("@/assets/images/planner_checklist_3d.png")}
+                message="Tap + to add your first goal for today"
+              />
             )}
           </>
         )}
@@ -584,14 +586,6 @@ const styles = StyleSheet.create({
   loadingContent: {
     padding: 40,
     alignItems: "center",
-  },
-  emptyTasks: {
-    padding: 40,
-    alignItems: "center",
-  },
-  emptyText: {
-    fontWeight: "bold",
-    fontFamily: "Inter, sans-serif",
   },
   calendarContainer: {
     flexDirection: "row",

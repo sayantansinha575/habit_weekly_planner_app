@@ -39,6 +39,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import CalorieProgress from "@/src/components/CalorieProgress";
+import EmptyState from "@/src/components/EmptyState";
 import ScannerOverlay from "@/src/components/ScannerOverlay";
 import { Animated, Easing } from "react-native";
 
@@ -419,303 +420,323 @@ export default function CalorieScreen() {
   );
 
   const renderDashboard = () => (
-    <ScrollView
-      ref={horizontalPagerRef}
-      horizontal
-      pagingEnabled
-      showsHorizontalScrollIndicator={false}
-      style={styles.horizontalPager}
-      contentOffset={{ x: dashboardPageIndex * width, y: 0 }}
-      onMomentumScrollEnd={(e) => {
-        const index = Math.round(e.nativeEvent.contentOffset.x / width);
-        setDashboardPageIndex(index);
-      }}
-    >
-      {/* Page 1: Main Dashboard */}
+    <View style={styles.mainContainer}>
       <ScrollView
-        style={[styles.scrollContainer, { width }]}
-        contentContainerStyle={styles.dashboardContent}
+        ref={horizontalPagerRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        style={styles.horizontalPager}
+        contentOffset={{ x: dashboardPageIndex * width, y: 0 }}
+        onMomentumScrollEnd={(e) => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / width);
+          setDashboardPageIndex(index);
+        }}
       >
-        <View style={styles.dashHeader}>
-          <View style={styles.titleRow}>
-            <Apple color={Colors.text} fill={Colors.secondary} size={32} />
-            <Text style={styles.dashTitle}>Calorie AI</Text>
+        {/* Page 1: Main Dashboard */}
+        <ScrollView
+          style={[styles.scrollContainer, { width }]}
+          contentContainerStyle={styles.dashboardContent}
+        >
+          <View style={styles.dashHeader}>
+            <View style={styles.titleRow}>
+              <Apple color={Colors.text} fill={Colors.secondary} size={32} />
+              <Text style={styles.dashTitle}>Calorie AI</Text>
+            </View>
+            <View style={styles.streakBadge}>
+              <Flame color="#FFA500" fill="#FFA500" size={20} />
+              <Text style={styles.streakText}>
+                {dashboardData?.streak || 0}
+              </Text>
+            </View>
           </View>
-          <View style={styles.streakBadge}>
-            <Flame color="#FFA500" fill="#FFA500" size={20} />
-            <Text style={styles.streakText}>{dashboardData?.streak || 0}</Text>
-          </View>
-        </View>
 
-        <View style={styles.calendarContainer}>
-          {weekDays.map((date, index) => {
-            const isSelected =
-              date.toDateString() === selectedDate.toDateString();
-            const dayName = date.toLocaleDateString("en-US", {
-              weekday: "short",
-            });
-            const dayNum = date.getDate().toString().padStart(2, "0");
+          <View style={styles.calendarContainer}>
+            {weekDays.map((date, index) => {
+              const isSelected =
+                date.toDateString() === selectedDate.toDateString();
+              const dayName = date.toLocaleDateString("en-US", {
+                weekday: "short",
+              });
+              const dayNum = date.getDate().toString().padStart(2, "0");
 
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[styles.dayItem, isSelected && styles.selectedDayItem]}
-                onPress={() => setSelectedDate(date)}
-              >
-                <Text
-                  style={[
-                    styles.dayNameText,
-                    isSelected && styles.selectedDayText,
-                  ]}
-                >
-                  {dayName}
-                </Text>
-                <View
-                  style={[
-                    styles.dayCircle,
-                    isSelected
-                      ? styles.selectedDayCircle
-                      : styles.dashedDayCircle,
-                  ]}
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.dayItem, isSelected && styles.selectedDayItem]}
+                  onPress={() => setSelectedDate(date)}
                 >
                   <Text
                     style={[
-                      styles.dayNumText,
+                      styles.dayNameText,
                       isSelected && styles.selectedDayText,
                     ]}
                   >
-                    {dayNum}
+                    {dayName}
                   </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Main Calorie Ring */}
-        <View style={styles.mainRingContainer}>
-          {dashboardData && dashboardData.caloriesLeft <= 0 ? (
-            <View style={styles.celebrationContainer}>
-              <LinearGradient
-                colors={["rgba(252, 163, 17, 0.2)", "rgba(255, 69, 0, 0.2)"]}
-                style={styles.celebrationGradient}
-              >
-                <TrendingUp color={Colors.secondary} size={48} />
-                <Text style={styles.celebrationTitle}>Goal Reached! 🥳</Text>
-                <Text style={styles.celebrationText}>
-                  You've completed your daily target. Amazing job!
-                </Text>
-                <TouchableOpacity
-                  style={styles.resetBtn}
-                  onPress={handleResetTarget}
-                >
-                  <Text style={styles.resetBtnText}>Start New Target</Text>
+                  <View
+                    style={[
+                      styles.dayCircle,
+                      isSelected
+                        ? styles.selectedDayCircle
+                        : styles.dashedDayCircle,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.dayNumText,
+                        isSelected && styles.selectedDayText,
+                      ]}
+                    >
+                      {dayNum}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
-              </LinearGradient>
-            </View>
+              );
+            })}
+          </View>
+
+          {/* Main Calorie Ring */}
+          <View style={styles.mainRingContainer}>
+            {dashboardData && dashboardData.caloriesLeft <= 0 ? (
+              <View style={styles.celebrationContainer}>
+                <LinearGradient
+                  colors={["rgba(252, 163, 17, 0.2)", "rgba(255, 69, 0, 0.2)"]}
+                  style={styles.celebrationGradient}
+                >
+                  <TrendingUp color={Colors.secondary} size={48} />
+                  <Text style={styles.celebrationTitle}>Goal Reached! 🥳</Text>
+                  <Text style={styles.celebrationText}>
+                    You've completed your daily target. Amazing job!
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.resetBtn}
+                    onPress={handleResetTarget}
+                  >
+                    <Text style={styles.resetBtnText}>Start New Target</Text>
+                  </TouchableOpacity>
+                </LinearGradient>
+              </View>
+            ) : (
+              <ProgressRing
+                progress={
+                  dashboardData
+                    ? Math.min(
+                        1,
+                        Math.max(
+                          0,
+                          1 -
+                            dashboardData.caloriesLeft /
+                              (dashboardData.dailyTarget || 2000),
+                        ),
+                      )
+                    : 0
+                }
+                size={180}
+                strokeWidth={12}
+                color={Colors.secondary}
+                centerText={
+                  dashboardData
+                    ? `${Math.max(0, dashboardData.caloriesLeft)}`
+                    : "0"
+                }
+                label="Calories Left"
+                textColor={Colors.text}
+              />
+            )}
+          </View>
+
+          {/* Macro Grid */}
+          <View style={styles.macroRow}>
+            <Card style={styles.macroCard}>
+              <View style={styles.macroCardHeader}>
+                <Text style={styles.macroValue}>
+                  {Math.max(
+                    0,
+                    (dashboardData?.proteinTarget || 150) -
+                      (dashboardData?.totalProtein || 0),
+                  )}
+                  g
+                </Text>
+                <Text style={styles.macroLabel}>Protein left</Text>
+              </View>
+              <ProgressRing
+                progress={
+                  dashboardData
+                    ? Math.min(
+                        1,
+                        (dashboardData.totalProtein || 0) /
+                          (dashboardData.proteinTarget || 150),
+                      )
+                    : 0
+                }
+                size={60}
+                strokeWidth={6}
+                color="#FF4D4D"
+              >
+                <Flame color="#FF4D4D" size={20} />
+              </ProgressRing>
+            </Card>
+
+            <Card style={styles.macroCard}>
+              <View style={styles.macroCardHeader}>
+                <Text style={styles.macroValue}>
+                  {Math.max(
+                    0,
+                    (dashboardData?.carbsTarget || 250) -
+                      (dashboardData?.totalCarbs || 0),
+                  )}
+                  g
+                </Text>
+                <Text style={styles.macroLabel}>Carbs left</Text>
+              </View>
+              <ProgressRing
+                progress={
+                  dashboardData
+                    ? Math.min(
+                        1,
+                        (dashboardData.totalCarbs || 0) /
+                          (dashboardData.carbsTarget || 250),
+                      )
+                    : 0
+                }
+                size={60}
+                strokeWidth={6}
+                color="#FFB84D"
+              >
+                <Zap color="#FFB84D" size={20} />
+              </ProgressRing>
+            </Card>
+
+            <Card style={styles.macroCard}>
+              <View style={styles.macroCardHeader}>
+                <Text style={styles.macroValue}>
+                  {Math.max(
+                    0,
+                    (dashboardData?.fatsTarget || 70) -
+                      (dashboardData?.totalFats || 0),
+                  )}
+                  g
+                </Text>
+                <Text style={styles.macroLabel}>Fats left</Text>
+              </View>
+              <ProgressRing
+                progress={
+                  dashboardData
+                    ? Math.min(
+                        1,
+                        (dashboardData.totalFats || 0) /
+                          (dashboardData.fatsTarget || 70),
+                      )
+                    : 0
+                }
+                size={60}
+                strokeWidth={6}
+                color="#4D94FF"
+              >
+                <Utensils color="#4D94FF" size={20} />
+              </ProgressRing>
+            </Card>
+          </View>
+          {/* 
+          <TouchableOpacity
+            style={styles.addMealHero}
+            onPress={() => setCurrentView("add-meal")}
+          >
+            <LinearGradient
+              colors={[Colors.primary, "#24243e"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientBtn}
+            >
+              <Plus color="#FFF" size={24} />
+              <Text style={styles.addMealText}>Add a Meal</Text>
+            </LinearGradient>
+          </TouchableOpacity> */}
+
+          <Text style={styles.sectionTitle}>Recent Meals</Text>
+          {dashboardData?.meals && dashboardData.meals.length > 0 ? (
+            dashboardData.meals.map((meal: any) => (
+              <Card key={meal.id} style={styles.mealCard}>
+                <View style={styles.mealInfo}>
+                  <Text style={styles.mealDesc}>{meal.description}</Text>
+                  <View style={styles.mealMacroPills}>
+                    <View
+                      style={[
+                        styles.macroPill,
+                        { backgroundColor: "rgba(255,77,77,0.08)" },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.macroPillText, { color: "#FF4D4D" }]}
+                      >
+                        P: {meal.protein}g
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.macroPill,
+                        { backgroundColor: "rgba(255,184,77,0.08)" },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.macroPillText, { color: "#FFB84D" }]}
+                      >
+                        C: {meal.carbs}g
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.macroPill,
+                        { backgroundColor: "rgba(77,148,255,0.08)" },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.macroPillText, { color: "#4D94FF" }]}
+                      >
+                        F: {meal.fats}g
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <Text style={styles.mealCals}>{meal.calories} kcal</Text>
+              </Card>
+            ))
           ) : (
-            <ProgressRing
-              progress={
-                dashboardData
-                  ? Math.min(
-                      1,
-                      Math.max(
-                        0,
-                        1 -
-                          dashboardData.caloriesLeft /
-                            (dashboardData.dailyTarget || 2000),
-                      ),
-                    )
-                  : 0
-              }
-              size={180}
-              strokeWidth={12}
-              color={Colors.secondary}
-              centerText={
-                dashboardData
-                  ? `${Math.max(0, dashboardData.caloriesLeft)}`
-                  : "0"
-              }
-              label="Calories Left"
-              textColor={Colors.text}
+            <EmptyState
+              imageSource={require("@/assets/images/salad_bowl_3d.png")}
+              message="Tap + to add your first meal of the day"
             />
           )}
+        </ScrollView>
+
+        {/* Page 2: Progress Section */}
+        <View style={{ width }}>
+          {calorieProgress ? (
+            <CalorieProgress
+              data={calorieProgress}
+              activeDays={activeDays}
+              onFilterChange={fetchProgressData}
+              onProfilePress={() => setCurrentView("profile")}
+            />
+          ) : (
+            <View style={[styles.mainContainer, styles.center]}>
+              <ActivityIndicator color={Colors.primary} />
+              <Text style={{ color: Colors.textMuted, marginTop: 12 }}>
+                Loading progress...
+              </Text>
+            </View>
+          )}
         </View>
-
-        {/* Macro Grid */}
-        <View style={styles.macroRow}>
-          <Card style={styles.macroCard}>
-            <View style={styles.macroCardHeader}>
-              <Text style={styles.macroValue}>
-                {Math.max(
-                  0,
-                  (dashboardData?.proteinTarget || 150) -
-                    (dashboardData?.totalProtein || 0),
-                )}
-                g
-              </Text>
-              <Text style={styles.macroLabel}>Protein left</Text>
-            </View>
-            <ProgressRing
-              progress={
-                dashboardData
-                  ? Math.min(
-                      1,
-                      (dashboardData.totalProtein || 0) /
-                        (dashboardData.proteinTarget || 150),
-                    )
-                  : 0
-              }
-              size={60}
-              strokeWidth={6}
-              color="#FF4D4D"
-            >
-              <Flame color="#FF4D4D" size={20} />
-            </ProgressRing>
-          </Card>
-
-          <Card style={styles.macroCard}>
-            <View style={styles.macroCardHeader}>
-              <Text style={styles.macroValue}>
-                {Math.max(
-                  0,
-                  (dashboardData?.carbsTarget || 250) -
-                    (dashboardData?.totalCarbs || 0),
-                )}
-                g
-              </Text>
-              <Text style={styles.macroLabel}>Carbs left</Text>
-            </View>
-            <ProgressRing
-              progress={
-                dashboardData
-                  ? Math.min(
-                      1,
-                      (dashboardData.totalCarbs || 0) /
-                        (dashboardData.carbsTarget || 250),
-                    )
-                  : 0
-              }
-              size={60}
-              strokeWidth={6}
-              color="#FFB84D"
-            >
-              <Zap color="#FFB84D" size={20} />
-            </ProgressRing>
-          </Card>
-
-          <Card style={styles.macroCard}>
-            <View style={styles.macroCardHeader}>
-              <Text style={styles.macroValue}>
-                {Math.max(
-                  0,
-                  (dashboardData?.fatsTarget || 70) -
-                    (dashboardData?.totalFats || 0),
-                )}
-                g
-              </Text>
-              <Text style={styles.macroLabel}>Fats left</Text>
-            </View>
-            <ProgressRing
-              progress={
-                dashboardData
-                  ? Math.min(
-                      1,
-                      (dashboardData.totalFats || 0) /
-                        (dashboardData.fatsTarget || 70),
-                    )
-                  : 0
-              }
-              size={60}
-              strokeWidth={6}
-              color="#4D94FF"
-            >
-              <Utensils color="#4D94FF" size={20} />
-            </ProgressRing>
-          </Card>
-        </View>
-
-        <TouchableOpacity
-          style={styles.addMealHero}
-          onPress={() => setCurrentView("add-meal")}
-        >
-          <LinearGradient
-            colors={[Colors.primary, "#24243e"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.gradientBtn}
-          >
-            <Plus color="#FFF" size={24} />
-            <Text style={styles.addMealText}>Add a Meal</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <Text style={styles.sectionTitle}>Recent Meals</Text>
-        {dashboardData?.meals && dashboardData.meals.length > 0 ? (
-          dashboardData.meals.map((meal: any) => (
-            <Card key={meal.id} style={styles.mealCard}>
-              <View style={styles.mealInfo}>
-                <Text style={styles.mealDesc}>{meal.description}</Text>
-                <View style={styles.mealMacroPills}>
-                  <View
-                    style={[
-                      styles.macroPill,
-                      { backgroundColor: "rgba(255,77,77,0.08)" },
-                    ]}
-                  >
-                    <Text style={[styles.macroPillText, { color: "#FF4D4D" }]}>
-                      P: {meal.protein}g
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.macroPill,
-                      { backgroundColor: "rgba(255,184,77,0.08)" },
-                    ]}
-                  >
-                    <Text style={[styles.macroPillText, { color: "#FFB84D" }]}>
-                      C: {meal.carbs}g
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.macroPill,
-                      { backgroundColor: "rgba(77,148,255,0.08)" },
-                    ]}
-                  >
-                    <Text style={[styles.macroPillText, { color: "#4D94FF" }]}>
-                      F: {meal.fats}g
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              <Text style={styles.mealCals}>{meal.calories} kcal</Text>
-            </Card>
-          ))
-        ) : (
-          <Text style={styles.emptyText}>No meals tracked today yet.</Text>
-        )}
       </ScrollView>
 
-      {/* Page 2: Progress Section */}
-      <View style={{ width }}>
-        {calorieProgress ? (
-          <CalorieProgress
-            data={calorieProgress}
-            activeDays={activeDays}
-            onFilterChange={fetchProgressData}
-            onProfilePress={() => setCurrentView("profile")}
-          />
-        ) : (
-          <View style={[styles.mainContainer, styles.center]}>
-            <ActivityIndicator color={Colors.primary} />
-            <Text style={{ color: Colors.textMuted, marginTop: 12 }}>
-              Loading progress...
-            </Text>
-          </View>
-        )}
-      </View>
-    </ScrollView>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setCurrentView("add-meal")}
+      >
+        <Plus color="#FFF" size={32} />
+      </TouchableOpacity>
+    </View>
   );
 
   const renderAddMeal = () => (
@@ -1410,5 +1431,22 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 20,
     fontWeight: "bold",
+  },
+
+  fab: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: Colors.primary,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
 });

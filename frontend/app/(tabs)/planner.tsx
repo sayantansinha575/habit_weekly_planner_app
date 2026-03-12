@@ -24,6 +24,7 @@ import ProgressRing from "@/src/components/ProgressRing";
 import GoalModal from "@/src/components/GoalModal";
 import { useTaskStore } from "@/src/store/useTaskStore";
 import { storage } from "@/src/utils/storage";
+import EmptyState from "@/src/components/EmptyState";
 import { useFocusEffect } from "@react-navigation/native";
 import { Alert, TouchableWithoutFeedback, Modal } from "react-native";
 
@@ -294,21 +295,30 @@ export default function PlannerScreen() {
             </Text>
           </View>
         ) : (
-          tasks.map((task) => (
-            <TaskItem
-              key={task.id}
-              title={task.title}
-              isCompleted={task.isCompleted}
-              scheduledDate={task.scheduledDate}
-              scheduledTime={task.scheduledTime}
-              isAutoRolled={task.isAutoRolled}
-              onToggle={() => handleToggleTask(task.id)}
-              onEdit={isEditMode ? undefined : () => openEditModal(task)}
-              isSelectionMode={isEditMode}
-              isSelected={selectedTaskIds.has(task.id)}
-              onSelect={() => toggleSelection(task.id)}
-            />
-          ))
+          <>
+            {tasks.map((task) => (
+              <TaskItem
+                key={task.id}
+                title={task.title}
+                isCompleted={task.isCompleted}
+                scheduledDate={task.scheduledDate}
+                scheduledTime={task.scheduledTime}
+                isAutoRolled={task.isAutoRolled}
+                onToggle={() => handleToggleTask(task.id)}
+                onEdit={isEditMode ? undefined : () => openEditModal(task)}
+                isSelectionMode={isEditMode}
+                isSelected={selectedTaskIds.has(task.id)}
+                onSelect={() => toggleSelection(task.id)}
+              />
+            ))}
+
+            {tasks.length === 0 && (
+              <EmptyState
+                imageSource={require("@/assets/images/planner_checklist_3d.png")}
+                message="Tap + to add your first goal for today"
+              />
+            )}
+          </>
         )}
       </ScrollView>
 
