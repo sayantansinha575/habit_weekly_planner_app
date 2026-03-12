@@ -496,7 +496,7 @@ export default function CalorieScreen() {
             })}
           </View>
 
-          {/* Main Calorie Ring */}
+          {/* Main Calorie Card */}
           <View style={styles.mainRingContainer}>
             {dashboardData && dashboardData.caloriesLeft <= 0 ? (
               <View style={styles.celebrationContainer}>
@@ -518,31 +518,49 @@ export default function CalorieScreen() {
                 </LinearGradient>
               </View>
             ) : (
-              <ProgressRing
-                progress={
-                  dashboardData
-                    ? Math.min(
-                        1,
-                        Math.max(
-                          0,
-                          1 -
-                            dashboardData.caloriesLeft /
-                              (dashboardData.dailyTarget || 2000),
-                        ),
-                      )
-                    : 0
-                }
-                size={180}
-                strokeWidth={12}
-                color={Colors.secondary}
-                centerText={
-                  dashboardData
-                    ? `${Math.max(0, dashboardData.caloriesLeft)}`
-                    : "0"
-                }
-                label="Calories Left"
-                textColor={Colors.text}
-              />
+              <Card style={styles.mainProgressCard}>
+                <View style={styles.progressLeft}>
+                  <Text style={styles.caloriesCount}>
+                    {dashboardData
+                      ? Math.max(0, dashboardData.caloriesLeft)
+                      : "0"}
+                  </Text>
+                  <Text style={styles.caloriesLabel}>
+                    Calories{" "}
+                    <Text style={{ fontFamily: Fonts.bold }}>left</Text>
+                  </Text>
+                </View>
+
+                <View style={styles.progressRight}>
+                  <ProgressRing
+                    progress={
+                      dashboardData
+                        ? Math.min(
+                            1,
+                            Math.max(
+                              0,
+                              1 -
+                                dashboardData.caloriesLeft /
+                                  (dashboardData.dailyTarget || 2000),
+                            ),
+                          )
+                        : 0
+                    }
+                    size={110}
+                    strokeWidth={10}
+                    color={Colors.secondary}
+                    trackColor="rgba(0,0,0,0.05)"
+                  >
+                    <View style={styles.flameIconContainer}>
+                      <Flame
+                        color={Colors.primary}
+                        fill={Colors.primary}
+                        size={24}
+                      />
+                    </View>
+                  </ProgressRing>
+                </View>
+              </Card>
             )}
           </View>
 
@@ -558,7 +576,9 @@ export default function CalorieScreen() {
                   )}
                   g
                 </Text>
-                <Text style={styles.macroLabel}>Protein left</Text>
+                <Text style={styles.macroLabel}>
+                  Protein <Text style={{ fontFamily: Fonts.bold }}>left</Text>
+                </Text>
               </View>
               <ProgressRing
                 progress={
@@ -572,9 +592,9 @@ export default function CalorieScreen() {
                 }
                 size={60}
                 strokeWidth={6}
-                color="#FF4D4D"
+                color="rgb(222, 102, 102)"
               >
-                <Flame color="#FF4D4D" size={20} />
+                <Flame color="rgb(222, 102, 102)" size={20} />
               </ProgressRing>
             </Card>
 
@@ -588,7 +608,9 @@ export default function CalorieScreen() {
                   )}
                   g
                 </Text>
-                <Text style={styles.macroLabel}>Carbs left</Text>
+                <Text style={styles.macroLabel}>
+                  Carbs <Text style={{ fontFamily: Fonts.bold }}>left</Text>
+                </Text>
               </View>
               <ProgressRing
                 progress={
@@ -602,9 +624,9 @@ export default function CalorieScreen() {
                 }
                 size={60}
                 strokeWidth={6}
-                color="#FFB84D"
+                color="rgb(227, 154, 98)"
               >
-                <Zap color="#FFB84D" size={20} />
+                <Zap color="rgb(227, 154, 98)" size={20} />
               </ProgressRing>
             </Card>
 
@@ -618,7 +640,9 @@ export default function CalorieScreen() {
                   )}
                   g
                 </Text>
-                <Text style={styles.macroLabel}>Fats left</Text>
+                <Text style={styles.macroLabel}>
+                  Fats <Text style={{ fontFamily: Fonts.bold }}>left</Text>
+                </Text>
               </View>
               <ProgressRing
                 progress={
@@ -632,9 +656,9 @@ export default function CalorieScreen() {
                 }
                 size={60}
                 strokeWidth={6}
-                color="#4D94FF"
+                color="rgb(102, 152, 222)"
               >
-                <Utensils color="#4D94FF" size={20} />
+                <Utensils color="rgb(102, 152, 222)" size={20} />
               </ProgressRing>
             </Card>
           </View>
@@ -1448,5 +1472,45 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
+  },
+  mainProgressCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 30,
+    paddingVertical: 25,
+    backgroundColor: "#FFF",
+    borderRadius: 32,
+    width: "100%",
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.02)",
+  },
+  progressLeft: {
+    flex: 1,
+  },
+  caloriesCount: {
+    fontSize: 48,
+    fontFamily: Fonts.bold,
+    color: "#1D1A23",
+    lineHeight: 56,
+  },
+  caloriesLabel: {
+    fontSize: 18,
+    color: Colors.textMuted,
+    fontFamily: Fonts.regular,
+    marginTop: 4,
+  },
+  progressRight: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  flameIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.03)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
