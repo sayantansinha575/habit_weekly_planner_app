@@ -29,6 +29,8 @@ import {
   Target,
   Apple,
   RefreshCw,
+  MoreHorizontal,
+  Image as LucideImage,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Fonts } from "@/src/theme/colors";
@@ -42,6 +44,7 @@ import CalorieProgress from "@/src/components/CalorieProgress";
 import EmptyState from "@/src/components/EmptyState";
 import ScannerOverlay from "@/src/components/ScannerOverlay";
 import { Animated, Easing } from "react-native";
+import { CameraView, useCameraPermissions } from "expo-camera";
 
 const { width } = Dimensions.get("window");
 
@@ -93,25 +96,55 @@ export default function CalorieScreen() {
   const loadingRotation = useRef(new Animated.Value(0)).current;
   const loadingFade = useRef(new Animated.Value(0)).current;
   const screenFade = useRef(new Animated.Value(1)).current;
+  const scanLineAnim = useRef(new Animated.Value(0)).current;
+
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<CameraView>(null);
+
+  useEffect(() => {
+    if (currentView === "add-meal") {
+      const scanLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(scanLineAnim, {
+            toValue: 1,
+            duration: 2000,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(scanLineAnim, {
+            toValue: 0,
+            duration: 2000,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      scanLoop.start();
+      return () => scanLoop.stop();
+    }
+  }, [currentView, scanLineAnim]);
+
+  const handleScannerCapture = async () => {
+    if (!cameraRef.current) return;
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.5,
+        base64: true,
+      });
+      if (photo) {
+        setSelectedImage(photo.uri);
+        setImageBase64(photo.base64 || null);
+      }
+    } catch (e) {
+      console.error("Capture failed:", e);
+      Alert.alert("Error", "Failed to capture photo");
+    }
+  };
 
   const takePhoto = async () => {
+    // Falls back to image picker if camera view is not active or needed
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission", "Camera permission is required");
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 0.5,
-      base64: true,
-      cameraType: ImagePicker.CameraType.back,
-    });
-
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-      setImageBase64(result.assets[0].base64 || null);
-    }
+    // ... rest of old takePhoto if needed, but we'll use handleScannerCapture mostly
   };
 
   const pickImage = async () => {
@@ -764,90 +797,172 @@ export default function CalorieScreen() {
   );
 
   const renderAddMeal = () => (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.mainContainer}
-    >
-      <View style={styles.modalHeader}>
-        <TouchableOpacity
-          onPress={() => setCurrentView("dashboard")}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <ChevronLeft color={Colors.text} size={28} />
-        </TouchableOpacity>
-        <Text style={styles.modalTitle}>What did you eat?</Text>
-        <View style={{ width: 28 }} />
+    <View style={styles.scannerContainer}>
+      {/* Scanner Body: Live Camera or Selected Image */}
+      <View style={styles.scannerBody}>
+        {!selectedImage ? (
+          permission?.granted ? (
+            <CameraView
+              ref={cameraRef}
+              style={StyleSheet.absoluteFill}
+              facing="back"
+            />
+          ) : (
+            <View style={styles.permissionContainer}>
+              <Text style={styles.permissionText}>
+                Camera access is needed to scan food
+              </Text>
+              <TouchableOpacity
+                style={styles.permissionBtn}
+                onPress={requestPermission}
+              >
+                <Text style={styles.permissionBtnText}>Allow Camera</Text>
+              </TouchableOpacity>
+            </View>
+          )
+        ) : (
+          <Image
+            source={{ uri: selectedImage }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+          />
+        )}
+
+        {/* Scanner Overlay Elements */}
+        {!selectedImage && (
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <LinearGradient
+              colors={["rgba(0,0,0,0.6)", "transparent", "rgba(0,0,0,0.8)"]}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.scannerFrameContainer}>
+              <View style={styles.scannerFrame}>
+                {/* Corner Borders */}
+                <View style={[styles.corner, styles.topLeft]} />
+                <View style={[styles.corner, styles.topRight]} />
+                <View style={[styles.corner, styles.bottomLeft]} />
+                <View style={[styles.corner, styles.bottomRight]} />
+
+                {/* Scanning Line */}
+                <Animated.View
+                  style={[
+                    styles.scannerScanLine,
+                    {
+                      transform: [
+                        {
+                          translateY: scanLineAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0, width * 0.8], // Frame height is width * 0.8
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+          </View>
+        )}
       </View>
 
-      <View style={styles.addMealContent}>
-        {selectedImage ? (
-          <View style={styles.imagePreviewContainer}>
-            <Image
-              source={{ uri: selectedImage }}
-              style={styles.imagePreview}
-            />
+      <SafeAreaView
+        style={[StyleSheet.absoluteFill, { backgroundColor: "transparent" }]}
+        pointerEvents="box-none"
+      >
+        {/* Scanner Header */}
+        <View style={styles.scannerHeader}>
+          <TouchableOpacity
+            onPress={() => setCurrentView("dashboard")}
+            style={styles.scannerBackBtn}
+          >
+            <ChevronLeft color="#FFF" size={28} />
+          </TouchableOpacity>
+          <Text style={styles.scannerTitleText}>Scanner</Text>
+          <TouchableOpacity style={styles.scannerMoreBtn}>
+            <MoreHorizontal color="#FFF" size={24} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ flex: 1 }} pointerEvents="none" />
+
+        {/* Bottom UI */}
+        <View style={styles.scannerFooter}>
+          <View style={styles.scannerModes}>
             <TouchableOpacity
-              style={styles.removeImageBtn}
+              style={[styles.scannerModeItem, styles.activeModeItem]}
+            >
+              <View style={styles.modeIconCircle}>
+                <Apple color="#000" size={20} />
+              </View>
+              <Text style={styles.activeModeText}>Scan food</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.scannerModeItem}
+              onPress={pickImage}
+            >
+              <View
+                style={[styles.modeIconCircle, { backgroundColor: "#FFF" }]}
+              >
+                <LucideImage color="#000" size={20} />
+              </View>
+              <Text style={styles.modeText}>Library</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.scannerCaptureRow}>
+            <View style={{ width: 44 }} />
+            <TouchableOpacity
+              style={styles.captureBtn}
+              onPress={handleScannerCapture}
+            >
+              <View style={styles.captureBtnInner}>
+                <View style={styles.captureBtnCore} />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.historyBtn} onPress={pickImage}>
+              <View style={styles.historyBtnInner}>
+                <LucideImage color="#FFF" size={20} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+
+      {/* Analysis UI when image is selected */}
+      {selectedImage && (
+        <View style={styles.analysisOverlay}>
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.9)"]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={{ width: "100%", gap: 12 }}>
+            <TouchableOpacity
+              style={styles.analyzeButton}
+              onPress={handleAnalyzeMeal}
+            >
+              <LinearGradient
+                colors={[Colors.primary, "#24243e"]}
+                style={styles.analyzeButtonGradient}
+              >
+                <Zap color="#FFF" size={20} />
+                <Text style={styles.analyzeButtonText}>Analyze Meal</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.retakeButton}
               onPress={() => {
                 setSelectedImage(null);
                 setImageBase64(null);
               }}
             >
-              <Text style={styles.removeImageText}>×</Text>
+              <Text style={styles.retakeButtonText}>Retake Photo</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <View style={styles.imageButtonsRow}>
-            <TouchableOpacity style={styles.imageActionBtn} onPress={takePhoto}>
-              <Camera color={Colors.text} size={24} />
-              <Text style={styles.imageActionText}>Take Photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.imageActionBtn} onPress={pickImage}>
-              <Search color={Colors.text} size={24} />
-              <Text style={styles.imageActionText}>Gallery</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        <TextInput
-          style={styles.textArea}
-          multiline
-          numberOfLines={4}
-          value={mealDescription}
-          onChangeText={setMealDescription}
-        />
-
-        <View style={styles.aiNote}>
-          <Info color={Colors.textMuted} size={16} />
-          <Text style={styles.aiNoteText}>
-            What did you eat? Or let AI see the photo...
-          </Text>
         </View>
-
-        <TouchableOpacity
-          style={[styles.primaryBtn, isScanning && { opacity: 0.7 }]}
-          onPress={handleAnalyzeMeal}
-          disabled={isScanning}
-        >
-          {isScanning ? (
-            <ActivityIndicator color="#000" />
-          ) : (
-            <>
-              <Zap color="#000" size={20} style={{ marginRight: 8 }} />
-              <Text style={styles.primaryBtnText}>Analyze with AI</Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.aiNote}>
-          <Info color={Colors.textMuted} size={16} />
-          <Text style={styles.aiNoteText}>
-            Our AI will estimate the calories and macros based on your
-            description.
-          </Text>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+      )}
+    </View>
   );
 
   const renderProfile = () => (
@@ -1468,10 +1583,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     elevation: 8,
-    shadowColor: "#000",
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 10,
+  },
+  analyzeButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+    gap: 12,
+  },
+  analyzeButtonText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontFamily: Fonts.bold,
   },
   mainProgressCard: {
     flexDirection: "row",
@@ -1512,5 +1639,228 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.03)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  scannerBody: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  permissionText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontFamily: Fonts.medium,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  permissionBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  permissionBtnText: {
+    color: "#000",
+    fontFamily: Fonts.bold,
+  },
+  scannerContainer: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  scannerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    marginTop: Platform.OS === "ios" ? 0 : 25,
+  },
+  scannerBackBtn: {
+    padding: 8,
+  },
+  scannerMoreBtn: {
+    padding: 8,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 20,
+  },
+  scannerTitleText: {
+    color: "#FFF",
+    fontSize: 20,
+    fontFamily: Fonts.bold,
+  },
+  scannerFrameContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scannerFrame: {
+    width: width * 0.8,
+    height: width * 0.8,
+    position: "relative",
+  },
+  corner: {
+    position: "absolute",
+    width: 40,
+    height: 40,
+    borderColor: "#FFF",
+    borderWidth: 4,
+  },
+  topLeft: {
+    top: 0,
+    left: 0,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+    borderTopLeftRadius: 32,
+  },
+  topRight: {
+    top: 0,
+    right: 0,
+    borderLeftWidth: 0,
+    borderBottomWidth: 0,
+    borderTopRightRadius: 32,
+  },
+  bottomLeft: {
+    bottom: 0,
+    left: 0,
+    borderRightWidth: 0,
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 32,
+  },
+  bottomRight: {
+    bottom: 0,
+    right: 0,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+    borderBottomRightRadius: 32,
+  },
+  scannerScanLine: {
+    position: "absolute",
+    left: 10,
+    right: 10,
+    height: 3,
+    zIndex: 10,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    shadowColor: "#FFF",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+  },
+  scannerFooter: {
+    paddingBottom: 40,
+  },
+  scannerModes: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 15,
+    marginBottom: 30,
+  },
+  scannerModeItem: {
+    width: 90,
+    height: 90,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 16,
+    padding: 12,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  activeModeItem: {
+    backgroundColor: "#DAF062", // Lime green from image
+  },
+  modeIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.05)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modeText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: "#666",
+  },
+  activeModeText: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: "#000",
+  },
+  scannerCaptureRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  captureBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  captureBtnInner: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#FFF",
+    padding: 4,
+  },
+  captureBtnCore: {
+    flex: 1,
+    borderRadius: 28,
+    backgroundColor: "#FF5E4D", // Reddish color from image
+  },
+  historyBtn: {
+    padding: 10,
+  },
+  historyBtnInner: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  analysisOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 180,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 30,
+    zIndex: 2000,
+  },
+  analyzeButton: {
+    width: "100%",
+    borderRadius: 24,
+    overflow: "hidden",
+    elevation: 8,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  retakeButton: {
+    width: "100%",
+    padding: 16,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  retakeButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontFamily: Fonts.medium,
   },
 });
