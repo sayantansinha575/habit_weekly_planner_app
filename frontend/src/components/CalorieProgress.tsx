@@ -19,16 +19,8 @@ import {
 import { Colors, Fonts } from "@/src/theme/colors";
 import Card from "@/src/components/Card";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  Svg,
-  Path,
-  Circle,
-  Defs,
-  LinearGradient as SvgGradient,
-  Stop,
-  Text as SvgText,
-  G,
-} from "react-native-svg";
+import { G } from "react-native-svg";
+import { LineChart } from "react-native-chart-kit";
 
 const { width } = Dimensions.get("window");
 
@@ -49,136 +41,93 @@ interface CalorieProgressProps {
 const Chart = ({
   data,
   color,
-  height = 180,
+  height = 200,
 }: {
   data: Array<{ date: string; calories: number }>;
   color: string;
   height?: number;
 }) => {
-  const chartWidth = width - 40;
-  const paddingLeft = 40;
-  const paddingBottom = 25;
-  const paddingTop = 30;
-  const drawWidth = chartWidth - paddingLeft - 10;
-  const drawHeight = height - paddingTop - paddingBottom;
-
   if (!data || data.length === 0) return null;
 
-  const values = data.map((d) => d.calories);
-  const maxVal = Math.max(...values, 2000); // Scale to at least 2000 kcal
-  const minVal = 0;
-  const range = maxVal - minVal || 1;
+  // Transform data for react-native-chart-kit
+  const labels = data.map((d, i) => {
+    const date = new Date(d.date);
+    // Show label for first, middle, last to keep it clean
+    if (data.length <= 7)
+      return date.toLocaleDateString("en-US", { weekday: "short" });
+    if (i === 0 || i === Math.floor(data.length / 2) || i === data.length - 1) {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    }
+    return "";
+  });
 
-  const points = data.map((d, i) => ({
-    x: paddingLeft + (i / (data.length - 1)) * drawWidth,
-    y: paddingTop + drawHeight - (d.calories / maxVal) * drawHeight,
-    val: d.calories,
-    day: new Date(d.date).toLocaleDateString("en-US", { weekday: "short" }),
-  }));
+  const chartData = {
+    labels,
+    datasets: [
+      {
+        data: data.map((d) => d.calories),
+        color: (opacity = 1) => color, // optional
+        strokeWidth: 3, // optional
+      },
+      // Invisible dataset to ensure Y-axis starts from 0
+      {
+        data: [0],
+        withDots: false,
+      },
+    ],
+  };
 
-  const linePath = points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
-    .join(" ");
-
-  const areaPath = `${linePath} L ${points[points.length - 1].x} ${paddingTop + drawHeight} L ${points[0].x} ${paddingTop + drawHeight} Z`;
-
-  // Grid line values
-  const gridLines = [0, 0.5, 1].map((p) => Math.round(p * maxVal));
+  const chartConfig = {
+    backgroundColor: "#ffffff",
+    backgroundGradientFrom: "#ffffff",
+    backgroundGradientTo: "#ffffff",
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity * 0.5})`,
+    style: {
+      borderRadius: 16,
+    },
+    propsForDots: {
+      r: data.length > 7 ? "0" : "4",
+      strokeWidth: "2",
+      stroke: color,
+    },
+    propsForLabels: {
+      fontFamily: Fonts.medium,
+      fontSize: 10,
+    },
+    fillShadowGradient: color,
+    fillShadowGradientOpacity: 0.2,
+    useShadowColorFromDataset: false,
+    propsForBackgroundLines: {
+      strokeDasharray: "4 4",
+      stroke: "#F0F0F0",
+    },
+  };
 
   return (
-    <Svg width={chartWidth} height={height}>
-      <Defs>
-        <SvgGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={color} stopOpacity="0.2" />
-          <Stop offset="1" stopColor={color} stopOpacity="0" />
-        </SvgGradient>
-      </Defs>
-
-      {/* Grid Lines & Y-Axis Labels */}
-      {gridLines.map((val, i) => {
-        const y = paddingTop + drawHeight - (val / maxVal) * drawHeight;
-        return (
-          <G key={`grid-${i}`}>
-            <Path
-              d={`M ${paddingLeft} ${y} L ${chartWidth - 10} ${y}`}
-              stroke="#F0F0F0"
-              strokeWidth="1"
-              strokeDasharray="4,4"
-            />
-            <SvgText
-              x={paddingLeft - 8}
-              y={y + 4}
-              fontSize="10"
-              fill={Colors.textMuted}
-              textAnchor="end"
-              fontFamily={Fonts.medium}
-            >
-              {val}
-            </SvgText>
-          </G>
-        );
-      })}
-
-      {/* Area Fill */}
-      <Path d={areaPath} fill="url(#areaGrad)" />
-
-      {/* Main Line */}
-      <Path
-        d={linePath}
-        fill="none"
-        stroke={color}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-
-      {/* Points & Labels */}
-      {points.map((p, i) => {
-        // Only show day labels for specific intervals if range is long
-        const showDayLabel =
-          data.length <= 7 || i % Math.ceil(data.length / 7) === 0;
-        // Only show calorie values if range is short OR it's the very last point
-        const showValueLabel = data.length <= 7 || i === data.length - 1;
-
-        return (
-          <G key={`point-${i}`}>
-            <Circle
-              cx={p.x}
-              cy={p.y}
-              r={data.length > 30 ? 2 : 4}
-              fill={color}
-            />
-            {/* Data Value Label */}
-            {showValueLabel && (
-              <SvgText
-                x={p.x}
-                y={p.y - 10}
-                fontSize="9"
-                fill={color}
-                textAnchor="middle"
-                fontWeight="bold"
-                fontFamily={Fonts.semiBold}
-              >
-                {p.val}
-              </SvgText>
-            )}
-            {/* Day Label */}
-            {showDayLabel && (
-              <SvgText
-                x={p.x}
-                y={height - 5}
-                fontSize="10"
-                fill={Colors.textMuted}
-                textAnchor="middle"
-                fontFamily={Fonts.medium}
-              >
-                {p.day}
-              </SvgText>
-            )}
-          </G>
-        );
-      })}
-    </Svg>
+    <LineChart
+      data={chartData}
+      width={width - 40}
+      height={height}
+      chartConfig={chartConfig}
+      bezier
+      style={{
+        marginVertical: 8,
+        borderRadius: 16,
+        paddingRight: 60, // Increased padding to make more room for labels on the left
+      }}
+      withHorizontalLines={true}
+      withVerticalLines={false}
+      withDots={data.length <= 30}
+      fromZero={true}
+      yAxisLabel=""
+      yAxisSuffix=" "
+      formatYLabel={(val) => Math.round(Number(val)).toString()}
+    />
   );
 };
 
@@ -306,7 +255,7 @@ export default function CalorieProgress({
           </View>
         </View>
         <View style={styles.chartContainer}>
-          <Chart data={data.chartData} color={Colors.primary} />
+          <Chart data={data.chartData} color={Colors.primary} height={200} />
         </View>
         <View style={styles.promoBox}>
           <Text style={styles.promoText}>
@@ -546,10 +495,11 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
   },
   chartContainer: {
-    height: 180,
+    height: 220,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 0,
+    marginLeft: 0, // Removed negative margin to keep labels inside
   },
   promoBox: {
     backgroundColor: "rgba(76, 175, 80, 0.1)",
