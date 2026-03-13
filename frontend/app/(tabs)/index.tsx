@@ -30,6 +30,7 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { useTaskStore } from "@/src/store/useTaskStore";
 import { shallow } from "zustand/shallow";
+import * as Location from "expo-location";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -56,59 +57,45 @@ export default function DashboardScreen() {
     try {
       setWeatherLoading(true);
 
-      // 1. Get location from IP (Try ipapi.co first, then freeipapi.com as fallback)
-      let locationData = null;
-      try {
-        const res = await fetch("https://ipapi.co/json/");
-        // console.log("IP API Response:", res);
-        // if (res.ok) locationData = await res.json();
-      } catch (e) {
-        console.warn("ipapi.co failed, trying fallback...");
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        console.log("Location permission denied");
+        return;
       }
 
-      // console.log("Location Data:", locationData);
-      if (!locationData) {
-        try {
-          const res = await fetch("https://freeipapi.com/api/json");
-          // console.log("Free IP API Response:", res);
-          if (res.ok) {
-            const data = await res.json();
-            locationData = {
-              latitude: data.latitude,
-              longitude: data.longitude,
-              city: data.cityName,
-              country_name: data.countryName,
-            };
-          }
-        } catch (e) {
-          console.error("All location APIs failed");
-        }
-      }
+      const location = await Location.getCurrentPositionAsync({});
 
-      if (locationData && locationData.latitude && locationData.longitude) {
-        // 2. Get weather from Open-Meteo
-        const weatherRes = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${locationData.latitude}&longitude=${locationData.longitude}&current_weather=true`,
-        );
-        // console.log("Weather Response:", weatherRes);
+      const lat = location.coords.latitude;
+      const lon = location.coords.longitude;
 
-        if (!weatherRes.ok) {
-          throw new Error(`Weather API error: ${weatherRes.status}`);
-        }
+      console.log("GPS:", lat, lon);
 
-        const weatherData = await weatherRes.json();
-        // console.log("Weather Data:", weatherData);
+      // 🌍 Get city name
+      const geo = await Location.reverseGeocodeAsync({
+        latitude: lat,
+        longitude: lon,
+      });
+      console.log("Geo:", geo);
 
-        if (weatherData.current_weather) {
-          setWeather({
-            temp: Math.round(weatherData.current_weather.temperature),
-            city: locationData.city || "Unknown City",
-            country: locationData.country_name || "Unknown Country",
-          });
-        }
-      }
+      const city = geo[0]?.city;
+      const country = geo[0]?.country;
+
+      const weatherRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`,
+      );
+
+      const weatherData = await weatherRes.json();
+
+      console.log("Weather Data:", weatherData);
+
+      setWeather({
+        temp: Math.round(weatherData.current_weather.temperature),
+        city: city,
+        country: country,
+      });
     } catch (error) {
-      console.error("Failed to fetch weather:", error);
+      console.error("Weather fetch failed:", error);
     } finally {
       setWeatherLoading(false);
     }
