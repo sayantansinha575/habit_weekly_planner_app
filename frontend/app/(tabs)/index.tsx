@@ -315,6 +315,7 @@ export default function DashboardScreen() {
                 size={70}
                 strokeWidth={6}
                 color={Colors.secondary}
+                trackColor="rgba(255, 255, 255, 0.2)"
               >
                 <Flame
                   color={Colors.secondary}
@@ -333,11 +334,11 @@ export default function DashboardScreen() {
             ]}
           />
           <Text style={styles.insightText}>
-            You complete{" "}
+            You’ve completed{" "}
             <Text style={styles.insightHighlight}>
               {stats?.completionRate || 0}%
             </Text>{" "}
-            tasks overall. Best day:{" "}
+            of your tasks. Best day:{" "}
             <Text style={styles.insightHighlight}>
               {stats?.bestDay || "N/A"}
             </Text>
