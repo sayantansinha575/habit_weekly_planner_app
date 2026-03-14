@@ -8,21 +8,16 @@ export default function AuthCallback() {
   const isAuthReady = useTaskStore((state) => state.isAuthReady);
   const isAuthenticating = useTaskStore((state) => state.isAuthenticating);
   const session = useTaskStore((state) => state.session);
-  const isOnboarding = useTaskStore((state) => state.isOnboarding);
 
   useEffect(() => {
     if (isAuthReady && !isAuthenticating) {
       if (session) {
-        if (isOnboarding) {
-          router.replace("/subscription?isOnboarding=true");
-        } else {
-          router.replace("/(tabs)");
-        }
+        router.replace("/(tabs)");
       } else {
         router.replace("/login");
       }
     }
-  }, [isAuthReady, isAuthenticating, session, isOnboarding]);
+  }, [isAuthReady, isAuthenticating, session]);
 
   return (
     <View style={styles.container}>

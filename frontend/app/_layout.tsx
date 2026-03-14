@@ -50,6 +50,10 @@ export default function RootLayout() {
   const isAuthReady = useTaskStore((state) => state.isAuthReady);
   const setIsAuthReady = useTaskStore((state) => state.setIsAuthReady);
   const session = useTaskStore((state) => state.session);
+  const hasSeenOnboarding = useTaskStore((state) => state.hasSeenOnboarding);
+  const checkOnboardingStatus = useTaskStore(
+    (state) => state.checkOnboardingStatus,
+  );
   const router = useRouter();
   const segments = useSegments();
   const rootNavigationState = useRootNavigationState();
@@ -84,6 +88,7 @@ export default function RootLayout() {
   useEffect(() => {
     // 1. Initial Session Check (Standard Supabase)
     const init = async () => {
+      await checkOnboardingStatus();
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -112,17 +117,33 @@ export default function RootLayout() {
   useEffect(() => {
     if (!isAuthReady || !rootNavigationState?.key) return;
 
+    if (!hasSeenOnboarding && segments[0] !== "welcome") {
+      router.replace("/welcome");
+      return;
+    }
+
     const inAuthGroup =
-      segments[0] !== "login" && segments[0] !== "auth-callback";
+      segments[0] !== "login" &&
+      segments[0] !== "welcome" &&
+      segments[0] !== "auth-callback";
 
     if (!session && inAuthGroup) {
       // Redirect to the login page if not authenticated
       router.replace("/login");
-    } else if (session && segments[0] === "login") {
+    } else if (
+      session &&
+      (segments[0] === "login" || segments[0] === "welcome")
+    ) {
       // Redirect to the tabs page if authenticated
       router.replace("/(tabs)");
     }
-  }, [session, isAuthReady, segments, rootNavigationState?.key]);
+  }, [
+    session,
+    isAuthReady,
+    hasSeenOnboarding,
+    segments,
+    rootNavigationState?.key,
+  ]);
   useEffect(() => {
     if ((loaded || error) && isAuthReady) {
       SplashScreen.hideAsync();

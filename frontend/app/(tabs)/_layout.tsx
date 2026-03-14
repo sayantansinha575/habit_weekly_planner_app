@@ -16,12 +16,12 @@ import useColorScheme from "@/hooks/use-color-scheme";
 import { useTaskStore } from "@/src/store/useTaskStore";
 import { iapService } from "@/src/services/iapService";
 
-const fetchCustomer = async () => {
-  const customerInfo = await iapService.getCustomerInfo();
-  console.log("Customer Info:", customerInfo);
-};
+// const fetchCustomer = async () => {
+//   const customerInfo = await iapService.getCustomerInfo();
+//   console.log("Customer Info:", customerInfo);
+// };
 
-fetchCustomer();
+// fetchCustomer();
 
 export default function TabLayout() {
   // try {
