@@ -97,6 +97,7 @@ export default function CalorieScreen() {
   const loadingFade = useRef(new Animated.Value(0)).current;
   const screenFade = useRef(new Animated.Value(1)).current;
   const scanLineAnim = useRef(new Animated.Value(0)).current;
+  const bounceAnim = useRef(new Animated.Value(0)).current;
 
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -123,6 +124,25 @@ export default function CalorieScreen() {
       return () => scanLoop.stop();
     }
   }, [currentView, scanLineAnim]);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounceAnim, {
+          toValue: -6,
+          duration: 800,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceAnim, {
+          toValue: 0,
+          duration: 800,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+  }, [bounceAnim]);
 
   const handleScannerCapture = async () => {
     if (!cameraRef.current) return;
@@ -711,7 +731,44 @@ export default function CalorieScreen() {
             </LinearGradient>
           </TouchableOpacity> */}
 
-          <Text style={styles.sectionTitle}>Recent Meals</Text>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 16,
+            }}
+          >
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>
+              Recent Meals
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "rgba(99, 102, 241, 0.1)",
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+              }}
+            >
+              <Animated.View
+                style={{ transform: [{ translateX: bounceAnim }] }}
+              >
+                <ChevronLeft color={Colors.primary} size={16} />
+              </Animated.View>
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: Colors.primary,
+                  fontFamily: Fonts.semiBold,
+                  marginLeft: 4,
+                }}
+              >
+                Swipe for Progress
+              </Text>
+            </View>
+          </View>
           {dashboardData?.meals && dashboardData.meals.length > 0 ? (
             dashboardData.meals.map((meal: any) => (
               <Card key={meal.id} style={styles.mealCard}>
