@@ -173,33 +173,43 @@ export default function InsightsScreen() {
           <Text style={styles.sectionTitle}>Productivity Patterns</Text>
         </View>
 
-        <Card style={styles.patternCard}>
-          <View style={styles.patternHeader}>
-            <Clock color={Colors.textMuted} size={20} />
-            <Text style={styles.patternTitle}>Workload Overview</Text>
+        <Card style={styles.workloadCard}>
+          <View style={styles.workloadHeader}>
+            <View style={styles.workloadIconWrapper}>
+              <Clock color={Colors.primary} size={22} />
+            </View>
+            <Text style={styles.workloadTitle}>Workload Overview</Text>
           </View>
-          <View style={styles.barContainer}>
-            <View
-              style={[
-                styles.bar,
-                { width: "100%", backgroundColor: Colors.primary },
-              ]}
-            />
-            <Text style={styles.barLabel}>Total Tasks: {stats.totalTasks}</Text>
+
+          <View style={styles.workloadStatsRow}>
+            <View style={styles.workloadStatBox}>
+              <Text style={styles.workloadStatValue}>{stats.totalTasks}</Text>
+              <Text style={styles.workloadStatLabel}>Total Tasks</Text>
+            </View>
+            <View style={styles.workloadDivider} />
+            <View style={styles.workloadStatBox}>
+              <Text style={styles.workloadStatValue}>
+                {stats.completedTasks}
+              </Text>
+              <Text style={styles.workloadStatLabel}>Completed</Text>
+            </View>
           </View>
-          <View style={styles.barContainer}>
-            <View
-              style={[
-                styles.bar,
-                {
-                  width: `${stats.completionRate}%`,
-                  backgroundColor: Colors.success,
-                },
-              ]}
-            />
-            <Text style={styles.barLabel}>
-              Completed: {stats.completedTasks} ({stats.completionRate}%)
-            </Text>
+
+          <View style={styles.workloadProgressWrapper}>
+            <View style={styles.workloadProgressHeader}>
+              <Text style={styles.workloadProgressLabel}>Completion Rate</Text>
+              <Text style={styles.workloadProgressValue}>
+                {stats.completionRate}%
+              </Text>
+            </View>
+            <View style={styles.workloadProgressBarBg}>
+              <View
+                style={[
+                  styles.workloadProgressBarFill,
+                  { width: `${stats.completionRate}%` },
+                ]}
+              />
+            </View>
           </View>
         </Card>
 
@@ -313,43 +323,103 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontFamily: Fonts.bold,
   },
-  patternCard: {
-    padding: 16,
-    // backgroundColor: "rgba(255, 255, 255, 0.75)",
-    borderRadius: 20,
+  workloadCard: {
+    padding: 24,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#FFF",
-    shadowColor: "#FFF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
-    elevation: 0,
+    borderColor: "rgba(255, 255, 255, 0.8)",
+    shadowColor: "rgba(17, 12, 46, 0.08)",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 24,
+    elevation: 8,
+    marginBottom: 8,
   },
-  patternHeader: {
+  workloadHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  patternTitle: {
+  workloadIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(99, 102, 241, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+  },
+  workloadTitle: {
     color: Colors.text,
-    fontSize: 14,
-    fontWeight: "600",
-    fontFamily: Fonts.semiBold,
-    marginLeft: 8,
+    fontSize: 18,
+    fontWeight: "700",
+    fontFamily: Fonts.bold,
   },
-  barContainer: {
-    marginBottom: 16,
+  workloadStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.02)",
   },
-  bar: {
-    height: 8,
-    borderRadius: 4,
+  workloadStatBox: {
+    flex: 1,
+    alignItems: "center",
+  },
+  workloadDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "rgba(0, 0, 0, 0.06)",
+  },
+  workloadStatValue: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: Colors.text,
+    fontFamily: Fonts.bold,
     marginBottom: 6,
   },
-  barLabel: {
+  workloadStatLabel: {
+    fontSize: 11,
     color: Colors.textMuted,
-    fontSize: 12,
-    fontWeight: "500",
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  workloadProgressWrapper: {
+    width: "100%",
+  },
+  workloadProgressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    marginBottom: 12,
+  },
+  workloadProgressLabel: {
+    fontSize: 15,
+    color: Colors.text,
+    fontFamily: Fonts.semiBold,
+  },
+  workloadProgressValue: {
+    fontSize: 18,
+    color: Colors.primary,
+    fontFamily: Fonts.bold,
+  },
+  workloadProgressBarBg: {
+    height: 14,
+    backgroundColor: "rgba(99, 102, 241, 0.12)",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  workloadProgressBarFill: {
+    height: "100%",
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
   },
   quoteCard: {
     marginTop: 40,

@@ -5,6 +5,7 @@ import { notificationUtils } from "../utils/notifications";
 import { api } from "../services/api";
 import { iapService } from "../services/iapService";
 import { authService } from "../services/authService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Task {
   id: string;
@@ -39,6 +40,7 @@ interface TaskState {
   isAuthReady: boolean;
   isAuthenticating: boolean;
   isOnboarding: boolean;
+  hasSeenOnboarding: boolean;
 
   calorieProgress: any | null;
 
@@ -56,6 +58,8 @@ interface TaskState {
   updateTask: (taskId: string, taskData: any) => Promise<void>;
   deleteTasks: (taskIds: string[]) => Promise<void>;
   applyTemplate: (userId: string, templateId: string) => Promise<void>;
+  checkOnboardingStatus: () => Promise<void>;
+  completeOnboarding: () => Promise<void>;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -69,6 +73,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   isAuthReady: false,
   isAuthenticating: false,
   isOnboarding: false,
+  hasSeenOnboarding: false,
   calorieProgress: null,
 
   setIsAuthenticating: (isAuthenticating) => set({ isAuthenticating }),
@@ -100,7 +105,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         subscriptionStatus: user.subscriptionStatus,
         isAuthReady: true,
         isAuthenticating: false,
-        isOnboarding: !!isNewUser,
+        isOnboarding: !user.hasCompletedOnboarding,
       });
 
       // Configure RevenueCat
@@ -328,6 +333,41 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       console.error("Store applyTemplate failed", e);
       set({ loading: false });
       throw e;
+    }
+  },
+
+  checkOnboardingStatus: async () => {
+    try {
+      const value = await AsyncStorage.getItem("@has_seen_onboarding");
+      set({ hasSeenOnboarding: value === "true" });
+    } catch (e) {
+      console.warn("Failed to check onboarding status", e);
+      set({ hasSeenOnboarding: false });
+    }
+  },
+
+  completeOnboarding: async () => {
+    try {
+      await AsyncStorage.setItem("@has_seen_onboarding", "true");
+      set({ hasSeenOnboarding: true });
+    } catch (e) {
+      console.warn("Failed to save onboarding status", e);
+    }
+
+    // Also update backend if user happens to be logged in
+    const user = get().user;
+    if (user) {
+      try {
+        await api.updateUser(user.id, { hasCompletedOnboarding: true });
+        set({
+          isOnboarding: false,
+          user: { ...user, hasCompletedOnboarding: true },
+        });
+      } catch (e) {
+        console.warn("Failed to sync onboarding completion with backend", e);
+      }
+    } else {
+      set({ isOnboarding: false });
     }
   },
 }));
