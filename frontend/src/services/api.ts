@@ -7,13 +7,14 @@ const getBackendUrl = () => {
   // For iOS Simulator or Web, use localhost
 
   // DEV CONFIG: Local IP for physical device
-  const isProduction = false;
+  const isProduction = true;
   const LOCAL_IP = "192.168.0.102";
 
   if (Platform.OS === "android") {
     // Return local IP for physical Android device
     if (isProduction) {
-      return "https://habit-weekly-planner-app.onrender.com";
+      // return "https://habit-weekly-planner-app.onrender.com";
+      return "https://habit-weekly-planner-app-vai2.onrender.com";
     } else {
       return `http://${LOCAL_IP}:5000`;
     }
@@ -21,7 +22,7 @@ const getBackendUrl = () => {
 
   if (Platform.OS === "ios") {
     if (isProduction) {
-      return "https://habit-weekly-planner-app.onrender.com";
+      return "https://habit-weekly-planner-app-vai2.onrender.com";
     } else {
       return `http://${LOCAL_IP}:5000`;
     }
@@ -138,6 +139,17 @@ export const api = {
     });
     if (!response.ok) {
       throw new Error("Failed to fetch user stats");
+    }
+    return response.json();
+  },
+  updateUser: async (userId: string, data: any) => {
+    const response = await fetch(`${BASE_URL}/users/${userId}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to update user");
     }
     return response.json();
   },
