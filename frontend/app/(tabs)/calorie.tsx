@@ -49,7 +49,36 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 const { width } = Dimensions.get("window");
 
 type ViewState = "dashboard" | "onboarding" | "profile" | "add-meal";
+
 import { useTaskStore } from "@/src/store/useTaskStore";
+
+// --- Conversion Utilities ---
+const lbsToKg = (lbs: string) => {
+  const val = parseFloat(lbs);
+  return isNaN(val) ? 0 : Math.round((val / 2.20462) * 10) / 10;
+};
+const kgToLbs = (kg: number | string) => {
+  const val = typeof kg === "string" ? parseFloat(kg) : kg;
+  return isNaN(val) ? "" : Math.round(val * 2.20462).toString();
+};
+
+const ftInToCm = (ftIn: string) => {
+  const match = ftIn.match(/(\d+)'(\d+)/);
+  if (!match) return 0;
+  const feet = parseInt(match[1]);
+  const inches = parseInt(match[2]);
+  const totalInches = feet * 12 + inches;
+  return Math.round(totalInches * 2.54);
+};
+
+const cmToFtIn = (cm: number | string) => {
+  const val = typeof cm === "string" ? parseFloat(cm) : cm;
+  if (isNaN(val)) return "6'10";
+  const totalInches = val / 2.54;
+  const feet = Math.floor(totalInches / 12);
+  const inches = Math.round(totalInches % 12);
+  return `${feet}'${inches}`;
+};
 
 export default function CalorieScreen() {
   // const { user, calorieProgress, loadCalAiProgress } = useTaskStore();
@@ -82,10 +111,12 @@ export default function CalorieScreen() {
   const [formData, setFormData] = useState({
     goalWeight: "",
     currentWeight: "",
-    height: "",
+    height: "6'10",
     dateOfBirth: "1995-01-01",
     gender: "Male",
     dailyStepGoal: "10000",
+    weightUnit: "lbs" as "lbs" | "kg",
+    heightUnit: "ft'in" as "ft'in" | "cm",
   });
 
   // Add Meal State
@@ -102,6 +133,12 @@ export default function CalorieScreen() {
 
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
+
+  useEffect(() => {
+    if (currentView === "add-meal" && !permission?.granted) {
+      requestPermission();
+    }
+  }, [currentView, permission?.granted]);
 
   useEffect(() => {
     if (currentView === "add-meal") {
@@ -221,15 +258,18 @@ export default function CalorieScreen() {
       const profileData = await api.getCalAiProfile(user.id);
       if (profileData) {
         setProfile(profileData);
+        // Backend always returns kg and cm
         setFormData({
-          goalWeight: profileData.goalWeight.toString(),
-          currentWeight: profileData.currentWeight.toString(),
-          height: profileData.height,
+          goalWeight: kgToLbs(profileData.goalWeight),
+          currentWeight: kgToLbs(profileData.currentWeight),
+          height: cmToFtIn(profileData.height),
           dateOfBirth: new Date(profileData.dateOfBirth)
             .toISOString()
             .split("T")[0],
           gender: profileData.gender,
           dailyStepGoal: profileData.dailyStepGoal.toString(),
+          weightUnit: "lbs",
+          heightUnit: "ft'in",
         });
         const dashData = await api.getCalAiDashboard(user.id);
         setDashboardData(dashData);
@@ -292,10 +332,27 @@ export default function CalorieScreen() {
 
     try {
       setIsOnboardingLoading(true);
+
+      // Convert to backend units (kg, cm)
+      const goalWeightKg =
+        formData.weightUnit === "lbs"
+          ? lbsToKg(formData.goalWeight)
+          : parseFloat(formData.goalWeight);
+
+      const currentWeightKg =
+        formData.weightUnit === "lbs"
+          ? lbsToKg(formData.currentWeight)
+          : parseFloat(formData.currentWeight);
+
+      const heightCm =
+        formData.heightUnit === "ft'in"
+          ? ftInToCm(formData.height).toString()
+          : formData.height;
+
       const payload = {
-        goalWeight: parseFloat(formData.goalWeight),
-        currentWeight: parseFloat(formData.currentWeight),
-        height: formData.height,
+        goalWeight: goalWeightKg,
+        currentWeight: currentWeightKg,
+        height: heightCm,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender,
         dailyStepGoal: parseInt(formData.dailyStepGoal),
@@ -419,19 +476,61 @@ export default function CalorieScreen() {
       </Text>
 
       <Card style={styles.formCard}>
-        <Text style={styles.inputLabel}>Goal Weight (kg)</Text>
+        <View style={styles.inputHeaderRow}>
+          <Text style={styles.inputLabel}>
+            Goal Weight ({formData.weightUnit})
+          </Text>
+          <View style={styles.unitToggle}>
+            <TouchableOpacity
+              style={[
+                styles.unitBtn,
+                formData.weightUnit === "lbs" && styles.unitBtnActive,
+              ]}
+              onPress={() => setFormData({ ...formData, weightUnit: "lbs" })}
+            >
+              <Text
+                style={[
+                  styles.unitBtnText,
+                  formData.weightUnit === "lbs" && styles.unitBtnTextActive,
+                ]}
+              >
+                lbs
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.unitBtn,
+                formData.weightUnit === "kg" && styles.unitBtnActive,
+              ]}
+              onPress={() => setFormData({ ...formData, weightUnit: "kg" })}
+            >
+              <Text
+                style={[
+                  styles.unitBtnText,
+                  formData.weightUnit === "kg" && styles.unitBtnTextActive,
+                ]}
+              >
+                kg
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <TextInput
           style={styles.input}
-          placeholder="e.g. 70"
+          placeholder={formData.weightUnit === "lbs" ? "e.g. 154" : "e.g. 70"}
           keyboardType="numeric"
           value={formData.goalWeight}
           onChangeText={(val) => setFormData({ ...formData, goalWeight: val })}
         />
 
-        <Text style={styles.inputLabel}>Current Weight (kg)</Text>
+        <View style={styles.inputHeaderRow}>
+          <Text style={styles.inputLabel}>
+            Current Weight ({formData.weightUnit})
+          </Text>
+        </View>
         <TextInput
           style={styles.input}
-          placeholder="e.g. 85"
+          placeholder={formData.weightUnit === "lbs" ? "e.g. 187" : "e.g. 85"}
           keyboardType="numeric"
           value={formData.currentWeight}
           onChangeText={(val) =>
@@ -439,11 +538,49 @@ export default function CalorieScreen() {
           }
         />
 
-        <Text style={styles.inputLabel}>Height (cm)</Text>
+        <View style={styles.inputHeaderRow}>
+          <Text style={styles.inputLabel}>Height ({formData.heightUnit})</Text>
+          <View style={styles.unitToggle}>
+            <TouchableOpacity
+              style={[
+                styles.unitBtn,
+                formData.heightUnit === "ft'in" && styles.unitBtnActive,
+              ]}
+              onPress={() => setFormData({ ...formData, heightUnit: "ft'in" })}
+            >
+              <Text
+                style={[
+                  styles.unitBtnText,
+                  formData.heightUnit === "ft'in" && styles.unitBtnTextActive,
+                ]}
+              >
+                ft'in
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.unitBtn,
+                formData.heightUnit === "cm" && styles.unitBtnActive,
+              ]}
+              onPress={() => setFormData({ ...formData, heightUnit: "cm" })}
+            >
+              <Text
+                style={[
+                  styles.unitBtnText,
+                  formData.heightUnit === "cm" && styles.unitBtnTextActive,
+                ]}
+              >
+                cm
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <TextInput
           style={styles.input}
-          placeholder="e.g. 180"
-          keyboardType="numeric"
+          placeholder={
+            formData.heightUnit === "ft'in" ? "e.g. 6'10" : "e.g. 180"
+          }
+          keyboardType={formData.heightUnit === "cm" ? "numeric" : "default"}
           value={formData.height}
           onChangeText={(val) => setFormData({ ...formData, height: val })}
         />
@@ -872,15 +1009,8 @@ export default function CalorieScreen() {
             />
           ) : (
             <View style={styles.permissionContainer}>
-              <Text style={styles.permissionText}>
-                Camera access is needed to scan food
-              </Text>
-              <TouchableOpacity
-                style={styles.permissionBtn}
-                onPress={requestPermission}
-              >
-                <Text style={styles.permissionBtnText}>Allow Camera</Text>
-              </TouchableOpacity>
+              <ActivityIndicator color={Colors.primary} size="large" />
+              <Text style={styles.permissionText}>Opening camera...</Text>
             </View>
           )
         ) : (
@@ -1045,7 +1175,45 @@ export default function CalorieScreen() {
       </View>
 
       <Card style={styles.formCard}>
-        <Text style={styles.inputLabel}>Goal Weight (kg)</Text>
+        <View style={styles.inputHeaderRow}>
+          <Text style={styles.inputLabel}>
+            Goal Weight ({formData.weightUnit})
+          </Text>
+          <View style={styles.unitToggle}>
+            <TouchableOpacity
+              style={[
+                styles.unitBtn,
+                formData.weightUnit === "lbs" && styles.unitBtnActive,
+              ]}
+              onPress={() => setFormData({ ...formData, weightUnit: "lbs" })}
+            >
+              <Text
+                style={[
+                  styles.unitBtnText,
+                  formData.weightUnit === "lbs" && styles.unitBtnTextActive,
+                ]}
+              >
+                lbs
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.unitBtn,
+                formData.weightUnit === "kg" && styles.unitBtnActive,
+              ]}
+              onPress={() => setFormData({ ...formData, weightUnit: "kg" })}
+            >
+              <Text
+                style={[
+                  styles.unitBtnText,
+                  formData.weightUnit === "kg" && styles.unitBtnTextActive,
+                ]}
+              >
+                kg
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <TextInput
           style={styles.input}
           keyboardType="numeric"
@@ -1053,7 +1221,11 @@ export default function CalorieScreen() {
           onChangeText={(val) => setFormData({ ...formData, goalWeight: val })}
         />
 
-        <Text style={styles.inputLabel}>Current Weight (kg)</Text>
+        <View style={styles.inputHeaderRow}>
+          <Text style={styles.inputLabel}>
+            Current Weight ({formData.weightUnit})
+          </Text>
+        </View>
         <TextInput
           style={styles.input}
           keyboardType="numeric"
@@ -1063,10 +1235,46 @@ export default function CalorieScreen() {
           }
         />
 
-        <Text style={styles.inputLabel}>Height (cm)</Text>
+        <View style={styles.inputHeaderRow}>
+          <Text style={styles.inputLabel}>Height ({formData.heightUnit})</Text>
+          <View style={styles.unitToggle}>
+            <TouchableOpacity
+              style={[
+                styles.unitBtn,
+                formData.heightUnit === "ft'in" && styles.unitBtnActive,
+              ]}
+              onPress={() => setFormData({ ...formData, heightUnit: "ft'in" })}
+            >
+              <Text
+                style={[
+                  styles.unitBtnText,
+                  formData.heightUnit === "ft'in" && styles.unitBtnTextActive,
+                ]}
+              >
+                ft'in
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.unitBtn,
+                formData.heightUnit === "cm" && styles.unitBtnActive,
+              ]}
+              onPress={() => setFormData({ ...formData, heightUnit: "cm" })}
+            >
+              <Text
+                style={[
+                  styles.unitBtnText,
+                  formData.heightUnit === "cm" && styles.unitBtnTextActive,
+                ]}
+              >
+                cm
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <TextInput
           style={styles.input}
-          keyboardType="numeric"
+          keyboardType={formData.heightUnit === "cm" ? "numeric" : "default"}
           value={formData.height}
           onChangeText={(val) => setFormData({ ...formData, height: val })}
         />
@@ -1214,6 +1422,41 @@ const styles = StyleSheet.create({
     color: Colors.text,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.5)",
+  },
+  inputHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  unitToggle: {
+    flexDirection: "row",
+    backgroundColor: "rgba(0,0,0,0.05)",
+    borderRadius: 8,
+    padding: 2,
+  },
+  unitBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  unitBtnActive: {
+    backgroundColor: "#FFF",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  unitBtnText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontFamily: Fonts.medium,
+  },
+  unitBtnTextActive: {
+    color: Colors.primary,
+    fontFamily: Fonts.bold,
   },
   primaryBtn: {
     backgroundColor: Colors.secondary,
