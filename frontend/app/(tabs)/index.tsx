@@ -347,7 +347,9 @@ export default function DashboardScreen() {
         </View>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Today's Plan</Text>
-          <Text style={styles.sectionAction}>View all</Text>
+          <TouchableOpacity onPress={() => router.push("/planner")}>
+            <Text style={styles.sectionAction}>View all</Text>
+          </TouchableOpacity>
         </View>
         {loading ? (
           <View

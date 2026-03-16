@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -34,106 +34,122 @@ interface CalorieProgressProps {
     streak: number;
   };
   onProfilePress?: () => void;
+  loading?: boolean;
   onFilterChange?: (days: number) => void;
   activeDays?: number;
 }
 
-const Chart = ({
-  data,
-  color,
-  height = 200,
-}: {
-  data: Array<{ date: string; calories: number }>;
-  color: string;
-  height?: number;
-}) => {
-  if (!data || data.length === 0) return null;
+const Chart = React.memo(
+  ({
+    data,
+    color,
+    height = 200,
+  }: {
+    data: Array<{ date: string; calories: number }>;
+    color: string;
+    height?: number;
+  }) => {
+    if (!data || data.length === 0) return null;
 
-  // Transform data for react-native-chart-kit
-  const labels = data.map((d, i) => {
-    const date = new Date(d.date);
-    // Show label for first, middle, last to keep it clean
-    if (data.length <= 7)
-      return date.toLocaleDateString("en-US", { weekday: "short" });
-    if (i === 0 || i === Math.floor(data.length / 2) || i === data.length - 1) {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
+    // Transform data for react-native-chart-kit
+    const labels = useMemo(() => {
+      return data.map((d, i) => {
+        const date = new Date(d.date);
+        // Show label for first, middle, last to keep it clean
+        if (data.length <= 7)
+          return date.toLocaleDateString("en-US", { weekday: "short" });
+        if (
+          i === 0 ||
+          i === Math.floor(data.length / 2) ||
+          i === data.length - 1
+        ) {
+          return date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
+        }
+        return "";
       });
-    }
-    return "";
-  });
+    }, [data]);
 
-  const chartData = {
-    labels,
-    datasets: [
-      {
-        data: data.map((d) => d.calories),
-        color: (opacity = 1) => color, // optional
-        strokeWidth: 3, // optional
-      },
-      // Invisible dataset to ensure Y-axis starts from 0
-      {
-        data: [0],
-        withDots: false,
-      },
-    ],
-  };
+    const chartData = useMemo(
+      () => ({
+        labels,
+        datasets: [
+          {
+            data: data.map((d) => d.calories),
+            color: (opacity = 1) => color, // optional
+            strokeWidth: 3, // optional
+          },
+          // Invisible dataset to ensure Y-axis starts from 0
+          {
+            data: [0],
+            withDots: false,
+          },
+        ],
+      }),
+      [data, labels, color],
+    );
 
-  const chartConfig = {
-    backgroundColor: "#ffffff",
-    backgroundGradientFrom: "#ffffff",
-    backgroundGradientTo: "#ffffff",
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity * 0.5})`,
-    style: {
-      borderRadius: 16,
-    },
-    propsForDots: {
-      r: data.length > 7 ? "0" : "4",
-      strokeWidth: "2",
-      stroke: color,
-    },
-    propsForLabels: {
-      fontFamily: Fonts.medium,
-      fontSize: 10,
-    },
-    fillShadowGradient: color,
-    fillShadowGradientOpacity: 0.2,
-    useShadowColorFromDataset: false,
-    propsForBackgroundLines: {
-      strokeDasharray: "4 4",
-      stroke: "#F0F0F0",
-    },
-  };
+    const chartConfig = useMemo(
+      () => ({
+        backgroundColor: "#ffffff",
+        backgroundGradientFrom: "#ffffff",
+        backgroundGradientTo: "#ffffff",
+        decimalPlaces: 0,
+        color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
+        labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity * 0.5})`,
+        style: {
+          borderRadius: 16,
+        },
+        propsForDots: {
+          r: data.length > 7 ? "0" : "4",
+          strokeWidth: "2",
+          stroke: color,
+        },
+        propsForLabels: {
+          fontFamily: Fonts.medium,
+          fontSize: 10,
+        },
+        fillShadowGradient: color,
+        fillShadowGradientOpacity: 0.2,
+        useShadowColorFromDataset: false,
+        propsForBackgroundLines: {
+          strokeDasharray: "4 4",
+          stroke: "#F0F0F0",
+        },
+      }),
+      [data.length, color],
+    );
 
-  return (
-    <LineChart
-      data={chartData}
-      width={width - 40}
-      height={height}
-      chartConfig={chartConfig}
-      bezier
-      style={{
-        marginVertical: 8,
-        borderRadius: 16,
-        paddingRight: 60, // Increased padding to make more room for labels on the left
-      }}
-      withHorizontalLines={true}
-      withVerticalLines={false}
-      withDots={data.length <= 30}
-      fromZero={true}
-      yAxisLabel=""
-      yAxisSuffix=" "
-      formatYLabel={(val) => Math.round(Number(val)).toString()}
-    />
-  );
-};
+    return (
+      <LineChart
+        data={chartData}
+        width={width - 40}
+        height={height}
+        chartConfig={chartConfig}
+        bezier
+        style={{
+          marginVertical: 8,
+          borderRadius: 16,
+          paddingRight: 60, // Increased padding to make more room for labels on the left
+        }}
+        withHorizontalLines={true}
+        withVerticalLines={false}
+        withDots={data.length <= 30}
+        fromZero={true}
+        yAxisLabel=""
+        yAxisSuffix=" "
+        formatYLabel={(val) => Math.round(Number(val)).toString()}
+      />
+    );
+  },
+);
 
 export default function CalorieProgress({
   data,
   onProfilePress,
+  loading,
   onFilterChange,
   activeDays = 7,
 }: CalorieProgressProps) {
@@ -157,6 +173,13 @@ export default function CalorieProgress({
 
   const calorieValues = data.chartData.map((d) => d.calories);
   const chartValues = calorieValues;
+
+  const handleFilter = useCallback(
+    (days: number) => {
+      onFilterChange?.(days);
+    },
+    [onFilterChange],
+  );
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -233,7 +256,7 @@ export default function CalorieProgress({
             <TouchableOpacity
               key={f.label}
               style={[styles.filterTab, isActive && styles.activeTab]}
-              onPress={() => onFilterChange?.(f.days)}
+              onPress={() => handleFilter(f.days)}
             >
               <Text
                 style={[styles.filterText, isActive && styles.activeFilterText]}
@@ -255,7 +278,14 @@ export default function CalorieProgress({
           </View>
         </View>
         <View style={styles.chartContainer}>
-          <Chart data={data.chartData} color={Colors.primary} height={200} />
+          {loading ? (
+            <View>
+              <ActivityIndicator size="small" color={Colors.primary} />
+              <Text>Loading data...</Text>
+            </View>
+          ) : (
+            <Chart data={data.chartData} color={Colors.primary} height={200} />
+          )}
         </View>
         <View style={styles.promoBox}>
           <Text style={styles.promoText}>

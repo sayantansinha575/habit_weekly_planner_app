@@ -64,6 +64,7 @@ export default function CalorieScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dashboardPageIndex, setDashboardPageIndex] = useState(0);
   const horizontalPagerRef = useRef<ScrollView>(null);
+  const [chartLoading, setChartLoading] = useState(false);
 
   // Generate last 7 days
   const getLast7Days = () => {
@@ -203,8 +204,12 @@ export default function CalorieScreen() {
   const fetchProgressData = useCallback(
     async (days: number) => {
       if (!user?.id) return;
+
+      setActiveDays(days); // ✅ update UI first
+      setChartLoading(true);
       await loadCalAiProgress(user.id, days);
-      setActiveDays(days);
+
+      setChartLoading(false);
     },
     [user?.id, loadCalAiProgress],
   );
@@ -830,6 +835,7 @@ export default function CalorieScreen() {
             <CalorieProgress
               data={calorieProgress}
               activeDays={activeDays}
+              loading={chartLoading}
               onFilterChange={fetchProgressData}
               onProfilePress={() => setCurrentView("profile")}
             />
