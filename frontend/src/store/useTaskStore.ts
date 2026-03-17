@@ -34,7 +34,8 @@ interface TaskState {
   loading: boolean;
   isSyncing: boolean;
 
-  subscriptionStatus: "FREE" | "TRIAL" | "PREMIUM";
+  subscriptionStatus: "FREE" | "PRO";
+  isSubscriptionLoading: boolean;
   user: any;
   session: any;
   isAuthReady: boolean;
@@ -60,6 +61,8 @@ interface TaskState {
   applyTemplate: (userId: string, templateId: string) => Promise<void>;
   checkOnboardingStatus: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
+  checkSubscription: (userId: string) => Promise<void>;
+  setSubscriptionStatus: (status: "FREE" | "PRO") => void;
 
   calAiProfile: any | null;
   calAiDashboard: any | null;
@@ -76,6 +79,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   loading: false,
   isSyncing: false,
   subscriptionStatus: "FREE",
+  isSubscriptionLoading: false,
   user: null,
   session: null,
   isAuthReady: false,
@@ -440,6 +444,25 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }
     } else {
       set({ isOnboarding: false });
+    }
+  },
+
+  setSubscriptionStatus: (status) => set({ subscriptionStatus: status }),
+
+  checkSubscription: async (userId: string) => {
+    try {
+      set({ isSubscriptionLoading: true });
+      const info = await iapService.getCustomerInfo();
+      const isPro =
+        info?.entitlements?.active?.pro || info?.entitlements?.active?.premium;
+
+      set({
+        subscriptionStatus: isPro ? "PRO" : "FREE",
+        isSubscriptionLoading: false,
+      });
+    } catch (e) {
+      console.error("Subscription check failed", e);
+      set({ isSubscriptionLoading: false });
     }
   },
 }));
