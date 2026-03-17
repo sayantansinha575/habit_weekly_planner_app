@@ -8,16 +8,16 @@ import { useTaskStore } from "../store/useTaskStore";
 WebBrowser.maybeCompleteAuthSession();
 
 export const authService = {
-  signInWithGoogle: async () => {
+  signInWithOAuth: async (provider: "google" | "apple") => {
     try {
       const redirectUri = makeRedirectUri({
         scheme: "frontend",
         path: "auth-callback",
       });
-      console.log("Redirect URI:", redirectUri);
+      console.log(`${provider} Login Redirect URI:`, redirectUri);
 
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
+        provider,
         options: {
           redirectTo: redirectUri,
         },
@@ -56,7 +56,7 @@ export const authService = {
         }
       }
     } catch (error) {
-      console.error("Google Sign-In Error:", error);
+      console.error(`${provider} Sign-In Error:`, error);
       throw error;
     }
   },

@@ -5,10 +5,10 @@ import {
   Text,
   TouchableOpacity,
   SafeAreaView,
-  Image,
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Diamond } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -23,25 +23,29 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
   const setSession = useTaskStore((state) => state.setSession);
 
-  const handleGoogleLogin = async () => {
+  const handleOAuthLogin = async () => {
+    const provider = Platform.OS === "ios" ? "apple" : "google";
     try {
       setLoading(true);
-      console.log("Google login started");
-      await authService.signInWithGoogle();
-      // const { session }: any = await authService.signInWithGoogle();
-      // console.log("OAuth result:", session);
-      // await authService.handleSession(session);
-      // setSession(session);
-
-      // Note: In real scenarios, the listener in RootLayout or a session change
-      // will trigger setSession. For now, we handle the manual flow if needed.
-      // After success, we expect Supabase to handle the redirect.
+      console.log(`${provider} login started`);
+      await authService.signInWithOAuth(provider);
     } catch (error) {
-      Alert.alert("Login Error", "Failed to sign in with Google.");
+      Alert.alert(
+        "Login Error",
+        `Failed to sign in with ${provider === "apple" ? "Apple" : "Google"}.`,
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  const loginProvider = Platform.OS === "ios" ? "apple" : "google";
+  const loginIcon =
+    loginProvider === "apple"
+      ? "https://static.cdnlogo.com/logos/a/12/apple.svg"
+      : "https://static.cdnlogo.com/logos/g/23/goolge-icon.png";
+  const loginText =
+    loginProvider === "apple" ? "Sign in with Apple" : "Sign in with Google";
 
   return (
     <LinearGradient colors={["#0f172a", "#1e293b"]} style={styles.container}>
@@ -63,22 +67,33 @@ const LoginScreen = () => {
 
           <View style={styles.formContainer}>
             <TouchableOpacity
-              style={styles.googleButton}
-              onPress={handleGoogleLogin}
+              style={[
+                styles.loginButton,
+                loginProvider === "apple" && styles.appleButton,
+              ]}
+              onPress={handleOAuthLogin}
               disabled={loading}
             >
-              <View style={styles.googleContent}>
+              <View style={styles.loginContent}>
                 {loading ? (
-                  <ActivityIndicator color="#0f172a" />
+                  <ActivityIndicator
+                    color={loginProvider === "apple" ? "#fff" : "#0f172a"}
+                  />
                 ) : (
                   <>
                     <Image
-                      source={{
-                        uri: "https://static.cdnlogo.com/logos/g/23/goolge-icon.png",
-                      }}
-                      style={styles.googleIcon}
+                      source={{ uri: loginIcon }}
+                      style={styles.providerIcon}
+                      contentFit="contain"
                     />
-                    <Text style={styles.googleText}>Sign in with Google</Text>
+                    <Text
+                      style={[
+                        styles.loginText,
+                        loginProvider === "apple" && styles.appleText,
+                      ]}
+                    >
+                      {loginText}
+                    </Text>
                   </>
                 )}
               </View>
@@ -119,7 +134,7 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   formContainer: { width: "100%", marginBottom: 40 },
-  googleButton: {
+  loginButton: {
     width: "100%",
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -130,13 +145,17 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
   },
-  googleContent: {
+  appleButton: {
+    backgroundColor: "#000",
+  },
+  loginContent: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
   },
-  googleIcon: { width: 24, height: 24, marginRight: 12 },
-  googleText: { fontSize: 18, fontWeight: "700", color: "#0f172a" },
+  providerIcon: { width: 24, height: 24, marginRight: 12 },
+  loginText: { fontSize: 18, fontWeight: "700", color: "#0f172a" },
+  appleText: { color: "#fff" },
   termsText: {
     marginTop: 24,
     fontSize: 12,
