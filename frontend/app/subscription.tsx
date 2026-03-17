@@ -35,6 +35,7 @@ const SubscriptionScreen = () => {
 
   const user = useTaskStore((state) => state.user);
   const subscriptionStatus = useTaskStore((state) => state.subscriptionStatus);
+  const checkSubscription = useTaskStore((state) => state.checkSubscription);
 
   useEffect(() => {
     loadOfferings();
@@ -65,6 +66,9 @@ const SubscriptionScreen = () => {
         Object.values(customerInfo.entitlements.active).length > 0;
 
       if (hasActiveSub) {
+        if (user?.id) {
+          await checkSubscription(user.id);
+        }
         setShowSuccess(true);
       }
     } catch (e: any) {
@@ -226,8 +230,8 @@ const SubscriptionScreen = () => {
                 ) : (
                   <Text style={styles.buttonText}>
                     {selectedPackage?.product?.introPrice
-                      ? "Start 7-Day Free Trial"
-                      : "Unlock Pro Now"}
+                      ? "Unlock Pro Now 3-Day Free Trial"
+                      : "Unlock Pro Now 3-Day Free Trial"}
                   </Text>
                 )}
               </LinearGradient>
@@ -267,7 +271,7 @@ const SubscriptionScreen = () => {
               style={styles.successButton}
               onPress={() => {
                 setShowSuccess(false);
-                router.replace("/(tabs)");
+                router.back();
               }}
             >
               <Text style={styles.successButtonText}>Go to Dashboard</Text>

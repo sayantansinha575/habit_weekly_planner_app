@@ -14,6 +14,7 @@ import {
   Platform,
   BackHandler,
 } from "react-native";
+import { useRouter } from "expo-router";
 import {
   Camera,
   Search,
@@ -90,6 +91,9 @@ export default function CalorieScreen() {
   const user = useTaskStore((s) => s.user);
   const calorieProgress = useTaskStore((s) => s.calorieProgress);
   const loadCalAiProgress = useTaskStore((s) => s.loadCalAiProgress);
+  const subscriptionStatus = useTaskStore((s) => s.subscriptionStatus);
+
+  const router = useRouter();
 
   const [currentView, setCurrentView] = useState<ViewState>("dashboard");
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -999,7 +1003,13 @@ export default function CalorieScreen() {
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => setCurrentView("add-meal")}
+        onPress={() => {
+          if (subscriptionStatus === "FREE") {
+            router.push("/subscription");
+          } else {
+            setCurrentView("add-meal");
+          }
+        }}
       >
         <Plus color="#FFF" size={32} />
       </TouchableOpacity>

@@ -42,6 +42,8 @@ export default function DashboardScreen() {
   const loadStats = useTaskStore((state) => state.loadStats);
   const toggleTask = useTaskStore((state) => state.toggleTask);
   const addTask = useTaskStore((state) => state.addTask);
+  const subscriptionStatus = useTaskStore((state) => state.subscriptionStatus);
+  const checkSubscription = useTaskStore((state) => state.checkSubscription);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weather, setWeather] = useState<{
@@ -148,6 +150,15 @@ export default function DashboardScreen() {
   React.useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Subscription check on focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user?.id) {
+        checkSubscription(user.id);
+      }
+    }, [user?.id, checkSubscription]),
+  );
 
   const handleToggleTask = async (id: string) => {
     if (!user?.id) return;
@@ -389,7 +400,13 @@ export default function DashboardScreen() {
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => setModalVisible(true)}
+        onPress={() => {
+          if (subscriptionStatus === "FREE" && tasks.length >= 2) {
+            router.push("/subscription");
+          } else {
+            setModalVisible(true);
+          }
+        }}
       >
         <Plus color="#FFF" size={32} />
       </TouchableOpacity>

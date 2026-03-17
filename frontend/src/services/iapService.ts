@@ -5,18 +5,18 @@ import Purchases, {
 import { Platform } from "react-native";
 
 const API_KEY_ANDROID = "goog_vsQYGRBUhdYHRtjDBibndSkvMLD";
+const API_KEY_IOS = "appl_mjtDZYkBCfreaNVoyiKVmrAZbKR";
 
 export const iapService = {
   configure: async (userId?: string) => {
     Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
     try {
-      if (Platform.OS === "android") {
-        await Purchases.configure({
-          apiKey: API_KEY_ANDROID,
-          appUserID: userId || null,
-        });
-        console.log("RevenueCat configured for Android");
-      }
+      const apiKey = Platform.OS === "android" ? API_KEY_ANDROID : API_KEY_IOS;
+      await Purchases.configure({
+        apiKey,
+        appUserID: userId || null,
+      });
+      console.log(`RevenueCat configured for ${Platform.OS}`);
     } catch (e) {
       console.error("RevenueCat Configuration Error:", e);
     }
