@@ -60,6 +60,14 @@ interface TaskState {
   applyTemplate: (userId: string, templateId: string) => Promise<void>;
   checkOnboardingStatus: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
+
+  calAiProfile: any | null;
+  calAiDashboard: any | null;
+  hasCalAiLoaded: boolean;
+  setCalAiLoaded: (value: boolean) => void;
+  calAiLoading: boolean;
+  setCalAiLoading: (v: boolean) => void;
+  loadCalAiData: (userId: string) => Promise<void>;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -78,6 +86,15 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   setIsAuthenticating: (isAuthenticating) => set({ isAuthenticating }),
   setIsAuthReady: (ready) => set({ isAuthReady: ready }),
+
+  // CalAI State
+  hasCalAiLoaded: false,
+  setCalAiLoaded: (value: boolean) => set({ hasCalAiLoaded: value }),
+
+  calAiLoading: false,
+  setCalAiLoading: (v: boolean) => set({ calAiLoading: v }),
+  calAiProfile: null,
+  calAiDashboard: null,
 
   setSession: async (session) => {
     // If no session, we are ready (logged out)
@@ -137,14 +154,37 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     });
   },
 
+  // loadTasks: async (userId) => {
+  //   set({ loading: true });
+  //   try {
+  //     // 1. Local First
+  //     const { local, sync } = await storage.fetchTasks(userId);
+  //     set({ tasks: local, loading: false });
+
+  //     // 2. Background Sync
+  //     const synced = await sync;
+  //     if (synced) {
+  //       set({ tasks: synced });
+  //     }
+  //   } catch (e) {
+  //     console.error("Store loadTasks failed", e);
+  //     set({ loading: false });
+  //   }
+  // },
+
   loadTasks: async (userId) => {
-    set({ loading: true });
+    const currentTasks = get().tasks;
+
+    // Only show loader if we have no tasks yet
+    if (currentTasks.length === 0) {
+      set({ loading: true });
+    }
+
     try {
-      // 1. Local First
       const { local, sync } = await storage.fetchTasks(userId);
+
       set({ tasks: local, loading: false });
 
-      // 2. Background Sync
       const synced = await sync;
       if (synced) {
         set({ tasks: synced });
@@ -166,6 +206,38 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }
     } catch (e) {
       console.error("Store loadStats failed", e);
+    }
+  },
+
+  loadCalAiData: async (userId: string) => {
+    const { calAiProfile } = get();
+
+    // ✅ only first time show loader
+    if (!calAiProfile) {
+      set({ calAiLoading: true });
+    }
+
+    try {
+      const profile = await api.getCalAiProfile(userId);
+
+      if (profile) {
+        const dash = await api.getCalAiDashboard(userId);
+
+        set({
+          calAiProfile: profile,
+          calAiDashboard: dash,
+          calAiLoading: false,
+        });
+      } else {
+        set({
+          calAiProfile: null,
+          calAiDashboard: null,
+          calAiLoading: false,
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      set({ calAiLoading: false });
     }
   },
 

@@ -81,15 +81,17 @@ const cmToFtIn = (cm: number | string) => {
 };
 
 export default function CalorieScreen() {
-  // const { user, calorieProgress, loadCalAiProgress } = useTaskStore();
-  const user = useTaskStore((state) => state.user);
-  const calorieProgress = useTaskStore((state) => state.calorieProgress);
-  const loadCalAiProgress = useTaskStore((state) => state.loadCalAiProgress);
+  const calAiProfile = useTaskStore((s) => s.calAiProfile);
+  const calAiDashboard = useTaskStore((s) => s.calAiDashboard);
+  const calAiLoading = useTaskStore((s) => s.calAiLoading);
+  const loadCalAiData = useTaskStore((s) => s.loadCalAiData);
+  const hasCalAiLoaded = useTaskStore((s) => s.hasCalAiLoaded);
+  const setCalAiLoaded = useTaskStore((s) => s.setCalAiLoaded);
+  const user = useTaskStore((s) => s.user);
+  const calorieProgress = useTaskStore((s) => s.calorieProgress);
+  const loadCalAiProgress = useTaskStore((s) => s.loadCalAiProgress);
 
   const [currentView, setCurrentView] = useState<ViewState>("dashboard");
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
-  const [dashboardData, setDashboardData] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dashboardPageIndex, setDashboardPageIndex] = useState(0);
   const horizontalPagerRef = useRef<ScrollView>(null);
@@ -251,42 +253,57 @@ export default function CalorieScreen() {
     [user?.id, loadCalAiProgress],
   );
 
-  const init = useCallback(async () => {
-    if (!user?.id) return;
-    try {
-      setLoading(true);
-      const profileData = await api.getCalAiProfile(user.id);
-      if (profileData) {
-        setProfile(profileData);
-        // Backend always returns kg and cm
-        setFormData({
-          goalWeight: kgToLbs(profileData.goalWeight),
-          currentWeight: kgToLbs(profileData.currentWeight),
-          height: cmToFtIn(profileData.height),
-          dateOfBirth: new Date(profileData.dateOfBirth)
-            .toISOString()
-            .split("T")[0],
-          gender: profileData.gender,
-          dailyStepGoal: profileData.dailyStepGoal.toString(),
-          weightUnit: "lbs",
-          heightUnit: "ft'in",
-        });
-        const dashData = await api.getCalAiDashboard(user.id);
-        setDashboardData(dashData);
-        setCurrentView("dashboard");
-      } else {
-        setCurrentView("onboarding");
-      }
-    } catch (e) {
-      console.error("Init failed:", e);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (user?.id) {
+      loadCalAiData(user.id);
     }
-  }, [user?.id]); // Removed activeDays and fetchProgressData from dependencies
+  }, [user?.id, loadCalAiData]);
 
   useEffect(() => {
-    init();
-  }, [init]);
+    if (hasCalAiLoaded && !calAiLoading) {
+      if (calAiProfile && currentView !== "dashboard") {
+        setCurrentView("dashboard");
+      } else if (!calAiProfile && currentView !== "onboarding") {
+        setCurrentView("onboarding");
+      }
+    }
+  }, [hasCalAiLoaded, calAiLoading, calAiProfile, currentView]);
+
+  // Sync formData with calAiProfile when profile view is opened or profile changes
+  useEffect(() => {
+    if (
+      calAiProfile &&
+      (currentView === "profile" || currentView === "onboarding")
+    ) {
+      // Check if data actually changed before setting to avoid loop/extra render
+      const newGoalWeight = kgToLbs(calAiProfile.goalWeight);
+      const newCurrentWeight = kgToLbs(calAiProfile.currentWeight);
+      const newHeight = cmToFtIn(calAiProfile.height);
+      const newDob = new Date(calAiProfile.dateOfBirth)
+        .toISOString()
+        .split("T")[0];
+      const newStepGoal = calAiProfile.dailyStepGoal?.toString() || "10000";
+
+      if (
+        formData.goalWeight !== newGoalWeight ||
+        formData.currentWeight !== newCurrentWeight ||
+        formData.height !== newHeight ||
+        formData.dateOfBirth !== newDob ||
+        formData.gender !== calAiProfile.gender ||
+        formData.dailyStepGoal !== newStepGoal
+      ) {
+        setFormData((prev) => ({
+          ...prev,
+          goalWeight: newGoalWeight,
+          currentWeight: newCurrentWeight,
+          height: newHeight,
+          dateOfBirth: newDob,
+          gender: calAiProfile.gender,
+          dailyStepGoal: newStepGoal,
+        }));
+      }
+    }
+  }, [calAiProfile, currentView, formData]);
 
   useEffect(() => {
     if (isOnboardingLoading) {
@@ -364,11 +381,7 @@ export default function CalorieScreen() {
         new Promise((resolve) => setTimeout(resolve, 2000)),
       ]);
 
-      setProfile(updated);
-
-      // Refresh data
-      const dashData = await api.getCalAiDashboard(user.id);
-      setDashboardData(dashData);
+      await loadCalAiData(user.id);
 
       // Smooth transition
       Animated.timing(screenFade, {
@@ -410,7 +423,7 @@ export default function CalorieScreen() {
         }).start(async () => {
           setSelectedImage(null);
           setImageBase64(null);
-          await init(); // Refresh dashboard data
+          await loadCalAiData(user.id); // Refresh dashboard data
           setCurrentView("dashboard");
           setIsScanning(false);
           // Fade back in
@@ -438,13 +451,10 @@ export default function CalorieScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              setLoading(true);
               await api.resetCalAiDashboard(user.id);
-              await init();
+              await loadCalAiData(user.id);
             } catch (e) {
               Alert.alert("Error", "Failed to reset");
-            } finally {
-              setLoading(false);
             }
           },
         },
@@ -452,7 +462,7 @@ export default function CalorieScreen() {
     );
   };
 
-  if (loading && !profile && currentView === "dashboard") {
+  if (calAiLoading && !calAiProfile && currentView === "dashboard") {
     return (
       <View style={[styles.mainContainer, styles.center]}>
         <ActivityIndicator size="large" color={Colors.card} />
@@ -641,7 +651,7 @@ export default function CalorieScreen() {
             <View style={styles.streakBadge}>
               <Flame color="#FFA500" fill="#FFA500" size={20} />
               <Text style={styles.streakText}>
-                {dashboardData?.streak || 0}
+                {calAiDashboard?.streak || 0}
               </Text>
             </View>
           </View>
@@ -693,7 +703,7 @@ export default function CalorieScreen() {
 
           {/* Main Calorie Card */}
           <View style={styles.mainRingContainer}>
-            {dashboardData && dashboardData.caloriesLeft <= 0 ? (
+            {calAiDashboard && calAiDashboard.caloriesLeft <= 0 ? (
               <View style={styles.celebrationContainer}>
                 <LinearGradient
                   colors={["rgba(252, 163, 17, 0.2)", "rgba(255, 69, 0, 0.2)"]}
@@ -716,8 +726,8 @@ export default function CalorieScreen() {
               <Card style={styles.mainProgressCard}>
                 <View style={styles.progressLeft}>
                   <Text style={styles.caloriesCount}>
-                    {dashboardData
-                      ? Math.max(0, dashboardData.caloriesLeft)
+                    {calAiDashboard
+                      ? Math.max(0, calAiDashboard.caloriesLeft)
                       : "0"}
                   </Text>
                   <Text style={styles.caloriesLabel}>
@@ -729,14 +739,14 @@ export default function CalorieScreen() {
                 <View style={styles.progressRight}>
                   <ProgressRing
                     progress={
-                      dashboardData
+                      calAiDashboard
                         ? Math.min(
                             1,
                             Math.max(
                               0,
                               1 -
-                                dashboardData.caloriesLeft /
-                                  (dashboardData.dailyTarget || 2000),
+                                calAiDashboard.caloriesLeft /
+                                  (calAiDashboard.dailyTarget || 2000),
                             ),
                           )
                         : 0
@@ -766,8 +776,8 @@ export default function CalorieScreen() {
                 <Text style={styles.macroValue}>
                   {Math.max(
                     0,
-                    (dashboardData?.proteinTarget || 150) -
-                      (dashboardData?.totalProtein || 0),
+                    (calAiDashboard?.proteinTarget || 150) -
+                      (calAiDashboard?.totalProtein || 0),
                   )}
                   g
                 </Text>
@@ -777,11 +787,11 @@ export default function CalorieScreen() {
               </View>
               <ProgressRing
                 progress={
-                  dashboardData
+                  calAiDashboard
                     ? Math.min(
                         1,
-                        (dashboardData.totalProtein || 0) /
-                          (dashboardData.proteinTarget || 150),
+                        (calAiDashboard.totalProtein || 0) /
+                          (calAiDashboard.proteinTarget || 150),
                       )
                     : 0
                 }
@@ -798,8 +808,8 @@ export default function CalorieScreen() {
                 <Text style={styles.macroValue}>
                   {Math.max(
                     0,
-                    (dashboardData?.carbsTarget || 250) -
-                      (dashboardData?.totalCarbs || 0),
+                    (calAiDashboard?.carbsTarget || 250) -
+                      (calAiDashboard?.totalCarbs || 0),
                   )}
                   g
                 </Text>
@@ -809,11 +819,11 @@ export default function CalorieScreen() {
               </View>
               <ProgressRing
                 progress={
-                  dashboardData
+                  calAiDashboard
                     ? Math.min(
                         1,
-                        (dashboardData.totalCarbs || 0) /
-                          (dashboardData.carbsTarget || 250),
+                        (calAiDashboard.totalCarbs || 0) /
+                          (calAiDashboard.carbsTarget || 250),
                       )
                     : 0
                 }
@@ -830,8 +840,8 @@ export default function CalorieScreen() {
                 <Text style={styles.macroValue}>
                   {Math.max(
                     0,
-                    (dashboardData?.fatsTarget || 70) -
-                      (dashboardData?.totalFats || 0),
+                    (calAiDashboard?.fatsTarget || 70) -
+                      (calAiDashboard?.totalFats || 0),
                   )}
                   g
                 </Text>
@@ -841,11 +851,11 @@ export default function CalorieScreen() {
               </View>
               <ProgressRing
                 progress={
-                  dashboardData
+                  calAiDashboard
                     ? Math.min(
                         1,
-                        (dashboardData.totalFats || 0) /
-                          (dashboardData.fatsTarget || 70),
+                        (calAiDashboard.totalFats || 0) /
+                          (calAiDashboard.fatsTarget || 70),
                       )
                     : 0
                 }
@@ -911,8 +921,8 @@ export default function CalorieScreen() {
               </Text>
             </View>
           </View>
-          {dashboardData?.meals && dashboardData.meals.length > 0 ? (
-            dashboardData.meals.map((meal: any) => (
+          {calAiDashboard?.meals && calAiDashboard.meals.length > 0 ? (
+            calAiDashboard.meals.map((meal: any) => (
               <Card key={meal.id} style={styles.mealCard}>
                 <View style={styles.mealInfo}>
                   <Text style={styles.mealDesc}>{meal.description}</Text>
@@ -1290,11 +1300,11 @@ export default function CalorieScreen() {
         />
 
         <TouchableOpacity
-          style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+          style={[styles.primaryBtn, calAiLoading && { opacity: 0.7 }]}
           onPress={handleSaveProfile}
-          disabled={loading}
+          disabled={calAiLoading}
         >
-          {loading ? (
+          {calAiLoading ? (
             <ActivityIndicator color="#000" />
           ) : (
             <Text style={styles.primaryBtnText}>Update Profile</Text>
