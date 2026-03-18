@@ -109,6 +109,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         subscriptionStatus: "FREE",
         isAuthReady: true,
         isAuthenticating: false,
+        hasCalAiLoaded: false,
+        calAiProfile: null,
+        calAiDashboard: null,
       });
       return;
     }
@@ -231,17 +234,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           calAiProfile: profile,
           calAiDashboard: dash,
           calAiLoading: false,
+          hasCalAiLoaded: true,
         });
       } else {
         set({
           calAiProfile: null,
           calAiDashboard: null,
           calAiLoading: false,
+          hasCalAiLoaded: true,
         });
       }
     } catch (e) {
       console.error(e);
-      set({ calAiLoading: false });
+      set({ calAiLoading: false, hasCalAiLoaded: true });
     }
   },
 

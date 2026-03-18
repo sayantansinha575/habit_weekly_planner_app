@@ -95,7 +95,7 @@ export default function CalorieScreen() {
 
   const router = useRouter();
 
-  const [currentView, setCurrentView] = useState<ViewState>("dashboard");
+  const [currentView, setCurrentView] = useState<ViewState | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dashboardPageIndex, setDashboardPageIndex] = useState(0);
   const horizontalPagerRef = useRef<ScrollView>(null);
@@ -393,6 +393,8 @@ export default function CalorieScreen() {
         duration: 400,
         useNativeDriver: true,
       }).start(() => {
+        // Force refresh all data for dashboard
+        loadCalAiData(user.id);
         setCurrentView("dashboard");
         setIsOnboardingLoading(false);
         Animated.timing(screenFade, {
@@ -1331,10 +1333,18 @@ export default function CalorieScreen() {
         style={StyleSheet.absoluteFill}
       />
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: screenFade }]}>
-        {currentView === "dashboard" && renderDashboard()}
-        {currentView === "onboarding" && renderOnboarding()}
-        {currentView === "add-meal" && renderAddMeal()}
-        {currentView === "profile" && renderProfile()}
+        {!currentView ? (
+          <View style={[styles.mainContainer, styles.center]}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : (
+          <>
+            {currentView === "dashboard" && renderDashboard()}
+            {currentView === "onboarding" && renderOnboarding()}
+            {currentView === "add-meal" && renderAddMeal()}
+            {currentView === "profile" && renderProfile()}
+          </>
+        )}
       </Animated.View>
 
       {isOnboardingLoading && (

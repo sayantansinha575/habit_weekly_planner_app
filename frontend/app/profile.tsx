@@ -49,6 +49,8 @@ export default function ProfileScreen() {
     currentWeight: "",
     height: "",
     dailyStepGoal: "",
+    dateOfBirth: "1995-01-01",
+    gender: "Male",
   });
 
   useEffect(() => {
@@ -62,6 +64,10 @@ export default function ProfileScreen() {
             currentWeight: profileData.currentWeight.toString(),
             height: profileData.height,
             dailyStepGoal: profileData.dailyStepGoal.toString(),
+            dateOfBirth: profileData.dateOfBirth
+              ? new Date(profileData.dateOfBirth).toISOString().split("T")[0]
+              : "1995-01-01",
+            gender: profileData.gender || "Male",
           });
         }
       } catch (e) {
@@ -94,9 +100,16 @@ export default function ProfileScreen() {
         currentWeight: parseFloat(formData.currentWeight),
         height: formData.height,
         dailyStepGoal: parseInt(formData.dailyStepGoal),
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
       });
+
+      // Refresh global store data
+      await useTaskStore.getState().loadCalAiData(user.id);
+
       Alert.alert("Success", "Profile updated successfully");
     } catch (e) {
+      console.error("Profile update error:", e);
       Alert.alert("Error", "Failed to update profile");
     } finally {
       setLoading(false);
