@@ -12,7 +12,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.weekora.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "We use your location to improve app experience.",
+        "NSCameraUsageDescription": "We need camera access to take photos.",
+        "NSPhotoLibraryUsageDescription": "We need access to your photos to upload images.",
+        "NSPhotoLibraryAddUsageDescription": "We need permission to save photos."
       }
     },
     "android": {

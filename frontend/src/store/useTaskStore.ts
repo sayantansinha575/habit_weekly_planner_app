@@ -6,6 +6,7 @@ import { api } from "../services/api";
 import { iapService } from "../services/iapService";
 import { authService } from "../services/authService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Purchases from "react-native-purchases";
 
 interface Task {
   id: string;
@@ -61,7 +62,7 @@ interface TaskState {
   applyTemplate: (userId: string, templateId: string) => Promise<void>;
   checkOnboardingStatus: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
-  checkSubscription: (userId: string) => Promise<void>;
+  checkSubscription: () => Promise<void>;
   setSubscriptionStatus: (status: "FREE" | "PRO") => void;
 
   calAiProfile: any | null;
@@ -126,20 +127,28 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       console.log("User verified:", user, "isNewUser:", isNewUser);
       set({
         user,
-        subscriptionStatus: user.subscriptionStatus,
         isAuthReady: true,
         isAuthenticating: false,
         isOnboarding: !user.hasCompletedOnboarding,
       });
 
-      // Configure RevenueCat
-      iapService.configure(user.id);
+      // Configure RevenueCat and sync
+      await iapService.configure(user.id);
+      await get().checkSubscription();
     } catch (e) {
       console.error("Session verification failed", e);
-      // Even if sync fails, we are "ready" but effectively logged out or in error state
       set({ isAuthReady: true, isAuthenticating: false });
     }
   },
+
+  // checkTrialStatus: () => {
+  //   const { user } = get();
+  //   if (!user || user.subscriptionStatus !== "TRIAL") return "valid";
+
+  //   const now = new Date();
+  //   const expiry = new Date(user.subscriptionEndDate);
+  //   return now > expiry ? "expired" : "valid";
+  // },
 
   checkTrialStatus: () => {
     const { user } = get();
@@ -147,55 +156,42 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     const now = new Date();
     const expiry = new Date(user.subscriptionEndDate);
-    return now > expiry ? "expired" : "valid";
-  },
 
+    if (now > expiry) {
+      set({ subscriptionStatus: "FREE" }); // 🔥 FIX
+      return "expired";
+    }
+
+    return "valid";
+  },
   signOut: async () => {
-    await authService.signOut();
-    set({
-      session: null,
-      user: null,
-      subscriptionStatus: "FREE",
-      tasks: [],
-      stats: null,
-    });
+    try {
+      await iapService.signOut(); // RevenueCat logout
+      await authService.signOut();
+      set({
+        session: null,
+        user: null,
+        subscriptionStatus: "FREE",
+        tasks: [],
+        stats: null,
+        hasCalAiLoaded: false,
+        calAiProfile: null,
+        calAiDashboard: null,
+      });
+    } catch (e) {
+      console.error("Sign out error:", e);
+    }
   },
-
-  // loadTasks: async (userId) => {
-  //   set({ loading: true });
-  //   try {
-  //     // 1. Local First
-  //     const { local, sync } = await storage.fetchTasks(userId);
-  //     set({ tasks: local, loading: false });
-
-  //     // 2. Background Sync
-  //     const synced = await sync;
-  //     if (synced) {
-  //       set({ tasks: synced });
-  //     }
-  //   } catch (e) {
-  //     console.error("Store loadTasks failed", e);
-  //     set({ loading: false });
-  //   }
-  // },
 
   loadTasks: async (userId) => {
     const currentTasks = get().tasks;
-
-    // Only show loader if we have no tasks yet
-    if (currentTasks.length === 0) {
-      set({ loading: true });
-    }
+    if (currentTasks.length === 0) set({ loading: true });
 
     try {
       const { local, sync } = await storage.fetchTasks(userId);
-
       set({ tasks: local, loading: false });
-
       const synced = await sync;
-      if (synced) {
-        set({ tasks: synced });
-      }
+      if (synced) set({ tasks: synced });
     } catch (e) {
       console.error("Store loadTasks failed", e);
       set({ loading: false });
@@ -206,11 +202,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       const { local, sync } = await storage.getUserStats(userId);
       set({ stats: local });
-
       const synced = await sync;
-      if (synced) {
-        set({ stats: synced });
-      }
+      if (synced) set({ stats: synced });
     } catch (e) {
       console.error("Store loadStats failed", e);
     }
@@ -218,18 +211,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   loadCalAiData: async (userId: string) => {
     const { calAiProfile } = get();
-
-    // ✅ only first time show loader
-    if (!calAiProfile) {
-      set({ calAiLoading: true });
-    }
+    if (!calAiProfile) set({ calAiLoading: true });
 
     try {
       const profile = await api.getCalAiProfile(userId);
-
       if (profile) {
         const dash = await api.getCalAiDashboard(userId);
-
         set({
           calAiProfile: profile,
           calAiDashboard: dash,
@@ -254,11 +241,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       const { local, sync } = await storage.getCalAiProgress(userId, days);
       const currentProgress = get().calorieProgress;
-
       if (local && JSON.stringify(local) !== JSON.stringify(currentProgress)) {
         set({ calorieProgress: local });
       }
-
       const synced = await sync;
       if (
         synced &&
@@ -276,8 +261,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       goalData.scheduledDate instanceof Date
         ? goalData.scheduledDate
         : new Date(goalData.scheduledDate);
-
-    // We create a temp task for immediate UI feedback
     const tempId = `temp-${Date.now()}`;
     const tempTask: Task = {
       id: tempId,
@@ -286,8 +269,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       scheduledDate: dateToSave,
       scheduledTime: goalData.scheduledTime,
     };
-
-    // 1. Optimistic Update
     const previousTasks = get().tasks;
     set({ tasks: [...previousTasks, tempTask] });
 
@@ -299,23 +280,18 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         goalData.scheduledTime,
         goalData.useNotification,
       );
-
-      // 2. Replace temp task with real one
       set((state) => ({
         tasks: state.tasks.map((t) => (t.id === tempId ? newTask : t)),
       }));
-      // 3. Ensure notification is scheduled (logic is inside storage.addTask but store can reinforce)
       notificationUtils.scheduleTaskNotification(newTask);
     } catch (e) {
-      set({ tasks: previousTasks }); // Rollback
+      set({ tasks: previousTasks });
       throw e;
     }
   },
 
   toggleTask: async (taskId) => {
     const previousTasks = get().tasks;
-
-    // 1. Optimistic Update
     set((state) => ({
       tasks: state.tasks.map((t) =>
         t.id === taskId ? { ...t, isCompleted: !t.isCompleted } : t,
@@ -324,17 +300,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     try {
       await storage.toggleTask(taskId);
-      // Auto-refresh stats in background
       const user = get().user;
       if (user) await get().loadStats(user.id);
-
-      // Update notification state
       const task = get().tasks.find((t) => t.id === taskId);
-      if (task) {
-        notificationUtils.scheduleTaskNotification(task);
-      }
+      if (task) notificationUtils.scheduleTaskNotification(task);
     } catch (e) {
-      set({ tasks: previousTasks }); // Rollback
+      set({ tasks: previousTasks });
       throw e;
     }
   },
@@ -345,8 +316,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       goalData.scheduledDate instanceof Date
         ? goalData.scheduledDate
         : new Date(goalData.scheduledDate);
-
-    // 1. Optimistic Update
     set((state) => ({
       tasks: state.tasks.map((t) =>
         t.id === taskId ? { ...t, ...goalData, scheduledDate: dateToSave } : t,
@@ -361,41 +330,31 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         goalData.scheduledTime,
         goalData.useNotification,
       );
-
-      // 2. Ensure store has the canonical server version
       set((state) => ({
         tasks: state.tasks.map((t) => (t.id === taskId ? updatedTask : t)),
       }));
-
-      // Auto-refresh stats
       const user = get().user;
       if (user) await get().loadStats(user.id);
-
-      // Update notification
       notificationUtils.scheduleTaskNotification(updatedTask);
     } catch (e) {
-      set({ tasks: previousTasks }); // Rollback
+      set({ tasks: previousTasks });
       throw e;
     }
   },
 
   deleteTasks: async (taskIds) => {
     const previousTasks = get().tasks;
-
-    // 1. Optimistic Update
     set((state) => ({
       tasks: state.tasks.filter((t) => !taskIds.includes(t.id)),
     }));
 
     try {
       await storage.deleteTasks(taskIds);
-      // Auto-refresh stats
       const user = get().user;
       if (user) await get().loadStats(user.id);
-      // Notifications are cancelled inside storage.deleteTasks, but we reinforce
       taskIds.forEach((id) => notificationUtils.cancelTaskNotification(id));
     } catch (e) {
-      set({ tasks: previousTasks }); // Rollback
+      set({ tasks: previousTasks });
       throw e;
     }
   },
@@ -404,11 +363,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set({ loading: true });
     try {
       await storage.applyTemplate(userId, templateId);
-      // After template application, we need to refresh the store
       const { sync } = await storage.fetchTasks(userId);
       const synced = await sync;
       set({ tasks: synced, loading: false });
-      // Refresh stats to reflect new tasks
       await get().loadStats(userId);
     } catch (e) {
       console.error("Store applyTemplate failed", e);
@@ -435,7 +392,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       console.warn("Failed to save onboarding status", e);
     }
 
-    // Also update backend if user happens to be logged in
     const user = get().user;
     if (user) {
       try {
@@ -454,12 +410,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   setSubscriptionStatus: (status) => set({ subscriptionStatus: status }),
 
-  checkSubscription: async (userId: string) => {
+  checkSubscription: async () => {
     try {
       set({ isSubscriptionLoading: true });
       const info = await iapService.getCustomerInfo();
-      const isPro =
-        info?.entitlements?.active?.pro || info?.entitlements?.active?.premium;
+      console.log("Customer Info:", info);
+      const isPro = Object.keys(info?.entitlements?.active || {}).length > 0;
 
       set({
         subscriptionStatus: isPro ? "PRO" : "FREE",
@@ -471,3 +427,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
 }));
+
+// Initialize RevenueCat Listener
+Purchases.addCustomerInfoUpdateListener((info) => {
+  const isPro = Object.keys(info.entitlements.active).length > 0;
+  useTaskStore.getState().setSubscriptionStatus(isPro ? "PRO" : "FREE");
+});

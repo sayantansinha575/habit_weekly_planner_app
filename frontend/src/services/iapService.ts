@@ -57,6 +57,15 @@ export const iapService = {
     }
   },
 
+  signOut: async () => {
+    try {
+      await Purchases.logOut();
+      console.log("RevenueCat logged out");
+    } catch (e) {
+      console.error("RevenueCat signOut error:", e);
+    }
+  },
+
   getPackageMetadata: (pkg: any) => {
     const type = pkg.packageType;
     switch (type) {

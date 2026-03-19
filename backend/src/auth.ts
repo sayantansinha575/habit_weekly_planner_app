@@ -7,10 +7,6 @@ dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
 
 export const upsertSupabaseUser = async (email: string, supabaseId: string) => {
-  const trialStartDate = new Date();
-  const subscriptionEndDate = new Date();
-  subscriptionEndDate.setDate(trialStartDate.getDate() + 7);
-
   const existingUser = await prisma.user.findUnique({ where: { email } });
   const isNewUser = !existingUser;
 
@@ -22,9 +18,7 @@ export const upsertSupabaseUser = async (email: string, supabaseId: string) => {
     create: {
       email,
       supabaseId,
-      subscriptionStatus: "TRIAL",
-      trialStartDate,
-      subscriptionEndDate,
+      subscriptionStatus: "FREE",
     },
   });
 

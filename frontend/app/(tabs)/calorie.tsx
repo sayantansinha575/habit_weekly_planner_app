@@ -265,10 +265,16 @@ export default function CalorieScreen() {
 
   useEffect(() => {
     if (hasCalAiLoaded && !calAiLoading) {
-      if (calAiProfile && currentView !== "dashboard") {
-        setCurrentView("dashboard");
-      } else if (!calAiProfile && currentView !== "onboarding") {
-        setCurrentView("onboarding");
+      if (calAiProfile) {
+        // Only auto-redirect if we are at the start or stuck in onboarding
+        if (currentView === null || currentView === "onboarding") {
+          setCurrentView("dashboard");
+        }
+      } else {
+        // Only auto-redirect if we are at the start or stuck in dashboard without a profile
+        if (currentView === null || currentView === "dashboard") {
+          setCurrentView("onboarding");
+        }
       }
     }
   }, [hasCalAiLoaded, calAiLoading, calAiProfile, currentView]);

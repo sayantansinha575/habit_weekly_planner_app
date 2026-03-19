@@ -166,6 +166,34 @@ app.delete("/tasks", verifySupabaseToken, async (req, res) => {
   }
 });
 
+app.put(
+  "/users/:id",
+  verifySupabaseToken,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { ...data } = req.body;
+
+      // Security: Only allow user to update their own profile
+      if (req.user?.id !== id) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id },
+        data: {
+          ...data,
+        },
+      });
+
+      res.json(updatedUser);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+);
+
 app.get(
   "/users/:id/stats",
   verifySupabaseToken,

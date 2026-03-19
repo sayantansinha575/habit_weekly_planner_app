@@ -155,7 +155,7 @@ export default function DashboardScreen() {
   useFocusEffect(
     React.useCallback(() => {
       if (user?.id) {
-        checkSubscription(user.id);
+        checkSubscription();
       }
     }, [user?.id, checkSubscription]),
   );

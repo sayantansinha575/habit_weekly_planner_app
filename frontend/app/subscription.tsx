@@ -23,6 +23,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { iapService } from "../src/services/iapService";
 import { useTaskStore } from "@/src/store/useTaskStore";
+import { api } from "../src/services/api";
 import { Modal } from "react-native";
 
 const SubscriptionScreen = () => {
@@ -66,8 +67,17 @@ const SubscriptionScreen = () => {
         Object.values(customerInfo.entitlements.active).length > 0;
 
       if (hasActiveSub) {
+        // Step 2: Immediate state update
+        useTaskStore.getState().setSubscriptionStatus("PRO");
+
         if (user?.id) {
-          await checkSubscription(user.id);
+          await checkSubscription();
+          // Optional: Sync to backend (Step 7 logic can be added here)
+          try {
+            await api.updateUser(user.id, { subscriptionStatus: "PREMIUM" });
+          } catch (e) {
+            console.error("Backend sync failed:", e);
+          }
         }
         setShowSuccess(true);
       }
