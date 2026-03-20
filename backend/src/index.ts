@@ -170,8 +170,8 @@ app.put(
   "/users/:id",
   verifySupabaseToken,
   async (req: AuthenticatedRequest, res) => {
+    const { id } = req.params;
     try {
-      const { id } = req.params;
       const { ...data } = req.body;
 
       // Security: Only allow user to update their own profile
@@ -189,6 +189,7 @@ app.put(
 
       res.json(updatedUser);
     } catch (e: any) {
+      console.error(`Failed to update user ${id}:`, e);
       res.status(500).json({ error: e.message });
     }
   },

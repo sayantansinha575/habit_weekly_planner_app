@@ -22,7 +22,7 @@ model User {
   lastActiveAt      DateTime? @default(now())
 
   // Subscription
-  subscriptionStatus   SubscriptionStatus @default(FREE)
+  subscriptionStatus   String @default("FREE")
   subscriptionPlatform String?            // "android" | "ios"
   trialStartDate       DateTime?
   subscriptionEndDate  DateTime?

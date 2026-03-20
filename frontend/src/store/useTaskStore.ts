@@ -125,8 +125,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         session.access_token,
       );
       console.log("User verified:", user, "isNewUser:", isNewUser);
+      // Initialize subscription status from backend as a fallback
+      const initialStatus =
+        user.subscriptionStatus === "PREMIUM" ||
+        user.subscriptionStatus === "PRO"
+          ? "PRO"
+          : "FREE";
+
       set({
         user,
+        subscriptionStatus: initialStatus,
         isAuthReady: true,
         isAuthenticating: false,
         isOnboarding: !user.hasCompletedOnboarding,
