@@ -43,6 +43,7 @@ interface TaskState {
   isAuthenticating: boolean;
   isOnboarding: boolean;
   hasSeenOnboarding: boolean;
+  isInitializing: boolean;
 
   calorieProgress: any | null;
 
@@ -64,6 +65,7 @@ interface TaskState {
   completeOnboarding: () => Promise<void>;
   checkSubscription: () => Promise<void>;
   setSubscriptionStatus: (status: "FREE" | "PRO") => void;
+  loadSubscriptionStatus: () => Promise<void>;
 
   calAiProfile: any | null;
   calAiDashboard: any | null;
@@ -88,6 +90,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   isOnboarding: false,
   hasSeenOnboarding: false,
   calorieProgress: null,
+  isInitializing: true,
 
   setIsAuthenticating: (isAuthenticating) => set({ isAuthenticating }),
   setIsAuthReady: (ready) => set({ isAuthReady: ready }),
@@ -104,11 +107,17 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   setSession: async (session) => {
     // If no session, we are ready (logged out)
     if (!session) {
+      console.log("No session provided to setSession");
+      // If we are still initializing, preserve the persisted status
+      // (Otherwise it gets wiped to FREE before getSession and verifySupabaseAuth complete)
+      const isInitializing = get().isInitializing;
+      const preservedStatus = get().subscriptionStatus;
+
       set({
         session: null,
         user: null,
-        subscriptionStatus: "FREE",
-        isAuthReady: true,
+        subscriptionStatus: isInitializing ? preservedStatus : "FREE",
+        isAuthReady: !isInitializing,
         isAuthenticating: false,
         hasCalAiLoaded: false,
         calAiProfile: null,
@@ -117,20 +126,23 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return;
     }
 
-    set({ session });
+    console.log("Session found, starting verification...");
+    set({ session, isSubscriptionLoading: true });
 
     // Verify with backend
     try {
-      const { user, isNewUser } = await api.verifySupabaseAuth(
-        session.access_token,
-      );
-      console.log("User verified:", user, "isNewUser:", isNewUser);
-      // Initialize subscription status from backend as a fallback
+      const { user } = await api.verifySupabaseAuth(session.access_token);
+
       const initialStatus =
         user.subscriptionStatus === "PREMIUM" ||
         user.subscriptionStatus === "PRO"
           ? "PRO"
           : "FREE";
+
+      console.log(
+        "Backend verification successful, initial status:",
+        initialStatus,
+      );
 
       set({
         user,
@@ -138,14 +150,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         isAuthReady: true,
         isAuthenticating: false,
         isOnboarding: !user.hasCompletedOnboarding,
+        isInitializing: false, // Done!
       });
+
+      // Persist status
+      await AsyncStorage.setItem("@subscription_status", initialStatus);
 
       // Configure RevenueCat and sync
       await iapService.configure(user.id);
       await get().checkSubscription();
     } catch (e) {
       console.error("Session verification failed", e);
-      set({ isAuthReady: true, isAuthenticating: false });
+      set({
+        isAuthReady: true,
+        isAuthenticating: false,
+        isSubscriptionLoading: false,
+      });
     }
   },
 
@@ -176,10 +196,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       await iapService.signOut(); // RevenueCat logout
       await authService.signOut();
+      get().setSubscriptionStatus("FREE"); // This also clears AsyncStorage
       set({
         session: null,
         user: null,
-        subscriptionStatus: "FREE",
         tasks: [],
         stats: null,
         hasCalAiLoaded: false,
@@ -416,7 +436,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
 
-  setSubscriptionStatus: (status) => set({ subscriptionStatus: status }),
+  setSubscriptionStatus: (status) => {
+    set({ subscriptionStatus: status });
+    AsyncStorage.setItem("@subscription_status", status);
+  },
 
   checkSubscription: async () => {
     try {
@@ -425,19 +448,44 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       console.log("Customer Info:", info);
       const isPro = Object.keys(info?.entitlements?.active || {}).length > 0;
 
+      const newStatus = isPro ? "PRO" : "FREE";
       set({
-        subscriptionStatus: isPro ? "PRO" : "FREE",
+        subscriptionStatus: newStatus,
         isSubscriptionLoading: false,
       });
+      await AsyncStorage.setItem("@subscription_status", newStatus);
     } catch (e) {
       console.error("Subscription check failed", e);
       set({ isSubscriptionLoading: false });
+    }
+  },
+  loadSubscriptionStatus: async () => {
+    try {
+      const status = await AsyncStorage.getItem("@subscription_status");
+      console.log("Loaded persisted status:", status);
+      if (status === "PRO" || status === "FREE") {
+        set({ subscriptionStatus: status as "PRO" | "FREE" });
+      }
+    } catch (e) {
+      console.error("Failed to load subscription status", e);
     }
   },
 }));
 
 // Initialize RevenueCat Listener
 Purchases.addCustomerInfoUpdateListener((info) => {
-  const isPro = Object.keys(info.entitlements.active).length > 0;
-  useTaskStore.getState().setSubscriptionStatus(isPro ? "PRO" : "FREE");
+  console.log("RevenueCat Update Listener fired:", info.entitlements.active);
+  const isPro = Object.keys(info.entitlements.active || {}).length > 0;
+  const currentStatus = useTaskStore.getState().subscriptionStatus;
+  const newStatus = isPro ? "PRO" : "FREE";
+
+  if (currentStatus !== newStatus) {
+    console.log(
+      "RevenueCat Update: Flipped status from",
+      currentStatus,
+      "to",
+      newStatus,
+    );
+    useTaskStore.getState().setSubscriptionStatus(newStatus);
+  }
 });

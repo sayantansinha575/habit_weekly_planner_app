@@ -401,7 +401,12 @@ export default function DashboardScreen() {
       <TouchableOpacity
         style={styles.fab}
         onPress={() => {
-          if (subscriptionStatus === "FREE" && tasks.length >= 2) {
+          // Only redirect if explicitly FREE and NOT loading
+          const isFree = subscriptionStatus === "FREE";
+          const isSubscriptionLoading =
+            useTaskStore.getState().isSubscriptionLoading;
+
+          if (isFree && !isSubscriptionLoading && tasks.length >= 2) {
             router.push("/subscription");
           } else {
             setModalVisible(true);

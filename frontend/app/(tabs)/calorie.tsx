@@ -1012,7 +1012,12 @@ export default function CalorieScreen() {
       <TouchableOpacity
         style={styles.fab}
         onPress={() => {
-          if (subscriptionStatus === "FREE") {
+          // Only redirect if explicitly FREE and NOT loading
+          const isFree = subscriptionStatus === "FREE";
+          const isSubscriptionLoading =
+            useTaskStore.getState().isSubscriptionLoading;
+
+          if (isFree && !isSubscriptionLoading) {
             router.push("/subscription");
           } else {
             setCurrentView("add-meal");

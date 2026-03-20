@@ -88,11 +88,17 @@ export default function RootLayout() {
   useEffect(() => {
     // 1. Initial Session Check (Standard Supabase)
     const init = async () => {
+      await useTaskStore.getState().loadSubscriptionStatus(); // Load persisted status immediately
       await checkOnboardingStatus();
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      await setSession(session);
+
+      if (!session) {
+        useTaskStore.setState({ isInitializing: false, isAuthReady: true });
+      } else {
+        await setSession(session);
+      }
 
       // Initialize RevenueCat
       if (session?.user?.id) {
