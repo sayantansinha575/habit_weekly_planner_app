@@ -133,20 +133,30 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       const { user } = await api.verifySupabaseAuth(session.access_token);
 
-      const initialStatus =
+      const currentStatus = get().subscriptionStatus;
+      const backendStatus =
         user.subscriptionStatus === "PREMIUM" ||
         user.subscriptionStatus === "PRO"
           ? "PRO"
           : "FREE";
 
+      // STICKY PRO: If we are already PRO (from local storage), do NOT downgrade to FREE
+      // based on backend yet. Let RevenueCat (iapService) be the final judge.
+      const finalStatus =
+        currentStatus === "PRO" || backendStatus === "PRO" ? "PRO" : "FREE";
+
       console.log(
-        "Backend verification successful, initial status:",
-        initialStatus,
+        "Backend verification successful. Current:",
+        currentStatus,
+        "Backend:",
+        backendStatus,
+        "Final Sticky Status:",
+        finalStatus,
       );
 
       set({
         user,
-        subscriptionStatus: initialStatus,
+        subscriptionStatus: finalStatus,
         isAuthReady: true,
         isAuthenticating: false,
         isOnboarding: !user.hasCompletedOnboarding,
@@ -154,7 +164,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       });
 
       // Persist status
-      await AsyncStorage.setItem("@subscription_status", initialStatus);
+      await AsyncStorage.setItem("@subscription_status", finalStatus);
 
       // Configure RevenueCat and sync
       await iapService.logIn(user.id);
@@ -445,15 +455,21 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       set({ isSubscriptionLoading: true });
       const info = await iapService.getCustomerInfo();
-      console.log("Customer Info:", info);
+      console.log("RevenueCat Customer Info:", info?.entitlements?.active);
       const isPro = Object.keys(info?.entitlements?.active || {}).length > 0;
 
       const newStatus = isPro ? "PRO" : "FREE";
-      set({
-        subscriptionStatus: newStatus,
-        isSubscriptionLoading: false,
-      });
-      await AsyncStorage.setItem("@subscription_status", newStatus);
+      const currentStatus = get().subscriptionStatus;
+
+      // Only update if it's a change to avoid unnecessary re-renders
+      if (currentStatus !== newStatus) {
+        console.log("Subscription status updated by RevenueCat:", newStatus);
+        set({
+          subscriptionStatus: newStatus,
+        });
+        await AsyncStorage.setItem("@subscription_status", newStatus);
+      }
+      set({ isSubscriptionLoading: false });
     } catch (e) {
       console.error("Subscription check failed", e);
       set({ isSubscriptionLoading: false });

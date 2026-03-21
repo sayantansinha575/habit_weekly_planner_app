@@ -27,10 +27,13 @@ import { storage } from "@/src/utils/storage";
 import EmptyState from "@/src/components/EmptyState";
 import { useFocusEffect } from "@react-navigation/native";
 import { Alert, TouchableWithoutFeedback, Modal } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function PlannerScreen() {
+  const router = useRouter();
   const user = useTaskStore((state) => state.user);
   const tasks = useTaskStore((state) => state.tasks);
+  const subscriptionStatus = useTaskStore((state) => state.subscriptionStatus);
   const loading = useTaskStore((state) => state.loading);
   const loadTasks = useTaskStore((state) => state.loadTasks);
   const toggleTask = useTaskStore((state) => state.toggleTask);
@@ -239,7 +242,21 @@ export default function PlannerScreen() {
           />
         </View>
 
-        <TouchableOpacity style={styles.addGoalBtn} onPress={openAddModal}>
+        <TouchableOpacity
+          style={styles.addGoalBtn}
+          onPress={() => {
+            // Only redirect if explicitly FREE and NOT loading
+            const isFree = subscriptionStatus === "FREE";
+            const isSubscriptionLoading =
+              useTaskStore.getState().isSubscriptionLoading;
+
+            if (isFree && !isSubscriptionLoading && tasks.length >= 2) {
+              router.push("/subscription");
+            } else {
+              setModalVisible(true);
+            }
+          }}
+        >
           <Text style={styles.addGoalText}>+ Add Daily Goal</Text>
         </TouchableOpacity>
 
