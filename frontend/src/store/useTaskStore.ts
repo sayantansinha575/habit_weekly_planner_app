@@ -157,7 +157,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       await AsyncStorage.setItem("@subscription_status", initialStatus);
 
       // Configure RevenueCat and sync
-      await iapService.configure(user.id);
+      await iapService.logIn(user.id);
       await get().checkSubscription();
     } catch (e) {
       console.error("Session verification failed", e);

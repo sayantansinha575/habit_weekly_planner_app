@@ -101,10 +101,9 @@ export default function RootLayout() {
       }
 
       // Initialize RevenueCat
+      await iapService.configure();
       if (session?.user?.id) {
-        await iapService.configure(session.user.id);
-      } else {
-        await iapService.configure();
+        await iapService.logIn(session.user.id);
       }
     };
 

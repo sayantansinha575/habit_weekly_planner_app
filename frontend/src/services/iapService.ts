@@ -8,17 +8,25 @@ const API_KEY_ANDROID = "goog_vsQYGRBUhdYHRtjDBibndSkvMLD";
 const API_KEY_IOS = "appl_mjtDZYkBCfreaNVoyiKVmrAZbKR";
 
 export const iapService = {
-  configure: async (userId?: string) => {
+  configure: async () => {
     Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
     try {
       const apiKey = Platform.OS === "android" ? API_KEY_ANDROID : API_KEY_IOS;
-      await Purchases.configure({
-        apiKey,
-        appUserID: userId || null,
-      });
+      await Purchases.configure({ apiKey });
       console.log(`RevenueCat configured for ${Platform.OS}`);
     } catch (e) {
       console.error("RevenueCat Configuration Error:", e);
+    }
+  },
+
+  logIn: async (userId: string) => {
+    try {
+      const { customerInfo, created } = await Purchases.logIn(userId);
+      console.log("RevenueCat logged in:", userId, "Created:", created);
+      return customerInfo;
+    } catch (e) {
+      console.error("RevenueCat logIn error:", e);
+      return null;
     }
   },
 
