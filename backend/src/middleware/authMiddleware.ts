@@ -9,8 +9,6 @@ const JWKS = createRemoteJWKSet(
 
 import { prisma } from "../prisma";
 
-console.log("SUPABASE_URL:", SUPABASE_URL);
-
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
