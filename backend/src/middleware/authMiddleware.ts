@@ -4,15 +4,15 @@ import { jwtVerify, createRemoteJWKSet } from "jose";
 const SUPABASE_URL = "https://vzxmrdlkrcjmaiiedxgk.supabase.co";
 
 const JWKS = createRemoteJWKSet(
-  new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`),
+  new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), //auth middleware
 );
-
+console.log("SUPABASE_URL:", SUPABASE_URL);
 import { prisma } from "../prisma";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
-    email?: string | null;
+    email: string;
     supabaseId: string;
   };
 }

@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 import { api } from "./api";
 import * as Linking from "expo-linking";
 import { useTaskStore } from "../store/useTaskStore";
+console.log("SUPABASE_URL:", "123"); // auth service
 
 WebBrowser.maybeCompleteAuthSession();
 
