@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   appleButton: {
-    backgroundColor: "#000",
+    backgroundColor: "#fff",
   },
   loginContent: {
     flexDirection: "row",
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   },
   providerIcon: { width: 24, height: 24, marginRight: 12 },
   loginText: { fontSize: 18, fontWeight: "700", color: "#0f172a" },
-  appleText: { color: "#fff" },
+  appleText: { color: "#0a0000" },
   termsText: {
     marginTop: 24,
     fontSize: 12,
