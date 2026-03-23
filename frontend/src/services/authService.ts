@@ -20,6 +20,7 @@ export const authService = {
         provider,
         options: {
           redirectTo: redirectUri,
+          scopes: "email",
         },
       });
 

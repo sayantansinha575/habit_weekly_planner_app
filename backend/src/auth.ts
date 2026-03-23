@@ -6,21 +6,46 @@ dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
 
-export const upsertSupabaseUser = async (email: string, supabaseId: string) => {
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  const isNewUser = !existingUser;
-
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {
-      supabaseId,
-    },
-    create: {
-      email,
-      supabaseId,
-      subscriptionStatus: "FREE",
-    },
+export const upsertSupabaseUser = async (
+  email: string | undefined | null,
+  supabaseId: string,
+) => {
+  // 1. Try to find by supabaseId (Best way)
+  let user = await prisma.user.findUnique({
+    where: { supabaseId },
   });
+
+  // 2. If not found by ID, try finding by email to link accounts
+  if (!user && email) {
+    user = await prisma.user.findUnique({
+      where: { email },
+    });
+  }
+
+  const isNewUser = !user;
+  const safeEmail = email || ""; // Fallback to empty string for required field
+
+  if (user) {
+    // UPDATE existing user
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        supabaseId,
+        // Only update email if it was previously empty or missing
+        email:
+          user.email === "" || user.email === "EMPTY" ? safeEmail : user.email,
+      },
+    });
+  } else {
+    // CREATE new user
+    user = await prisma.user.create({
+      data: {
+        email: safeEmail,
+        supabaseId,
+        subscriptionStatus: "FREE",
+      },
+    });
+  }
 
   return { user, isNewUser };
 };

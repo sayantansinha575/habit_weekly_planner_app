@@ -12,7 +12,7 @@ import { prisma } from "../prisma";
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
-    email: string;
+    email?: string | null;
     supabaseId: string;
   };
 }
