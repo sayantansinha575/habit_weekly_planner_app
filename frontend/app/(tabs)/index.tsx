@@ -31,6 +31,7 @@ import { useRouter } from "expo-router";
 import { useTaskStore } from "@/src/store/useTaskStore";
 import { shallow } from "zustand/shallow";
 import * as Location from "expo-location";
+import CustomSplashScreen from "@/src/components/CustomSplashScreen";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -44,6 +45,10 @@ export default function DashboardScreen() {
   const addTask = useTaskStore((state) => state.addTask);
   const subscriptionStatus = useTaskStore((state) => state.subscriptionStatus);
   const checkSubscription = useTaskStore((state) => state.checkSubscription);
+  const isAuthReady = useTaskStore((state) => state.isAuthReady);
+  const isSubscriptionLoading = useTaskStore(
+    (state) => state.isSubscriptionLoading,
+  );
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weather, setWeather] = useState<{
@@ -195,6 +200,21 @@ export default function DashboardScreen() {
       currentDatetasks.length
     );
   }, [currentDatetasks]);
+
+  // subcription handaler when click button
+  const handlePress = () => {
+    // 🚫 Block interaction until system is ready
+    if (!isAuthReady || isSubscriptionLoading) {
+      console.log("⏳ Still initializing, ignore tap");
+      return <CustomSplashScreen />;
+    }
+
+    if (subscriptionStatus === "FREE" && tasks.length >= 2) {
+      router.push("/subscription");
+    } else {
+      setModalVisible(true); // or setCurrentView("add-meal")
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -400,18 +420,19 @@ export default function DashboardScreen() {
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => {
-          // Only redirect if explicitly FREE and NOT loading
-          const isFree = subscriptionStatus === "FREE";
-          const isSubscriptionLoading =
-            useTaskStore.getState().isSubscriptionLoading;
+        // onPress={() => {
+        //   // Only redirect if explicitly FREE and NOT loading
+        //   const isFree = subscriptionStatus === "FREE";
+        //   const isSubscriptionLoading =
+        //     useTaskStore.getState().isSubscriptionLoading;
 
-          if (isFree && !isSubscriptionLoading && tasks.length >= 2) {
-            router.push("/subscription");
-          } else {
-            setModalVisible(true);
-          }
-        }}
+        //   if (isFree && !isSubscriptionLoading && tasks.length >= 2) {
+        //     router.push("/subscription");
+        //   } else {
+        //     setModalVisible(true);
+        //   }
+        // }}
+        onPress={handlePress}
       >
         <Plus color="#FFF" size={32} />
       </TouchableOpacity>

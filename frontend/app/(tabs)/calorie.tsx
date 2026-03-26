@@ -46,6 +46,7 @@ import EmptyState from "@/src/components/EmptyState";
 import ScannerOverlay from "@/src/components/ScannerOverlay";
 import { Animated, Easing } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import CustomSplashScreen from "@/src/components/CustomSplashScreen";
 
 const { width } = Dimensions.get("window");
 
@@ -92,6 +93,8 @@ export default function CalorieScreen() {
   const calorieProgress = useTaskStore((s) => s.calorieProgress);
   const loadCalAiProgress = useTaskStore((s) => s.loadCalAiProgress);
   const subscriptionStatus = useTaskStore((s) => s.subscriptionStatus);
+  const isAuthReady = useTaskStore((s) => s.isAuthReady);
+  const isSubscriptionLoading = useTaskStore((s) => s.isSubscriptionLoading);
 
   const router = useRouter();
 
@@ -202,6 +205,19 @@ export default function CalorieScreen() {
     } catch (e) {
       console.error("Capture failed:", e);
       Alert.alert("Error", "Failed to capture photo");
+    }
+  };
+  const handlePress = () => {
+    // 🚫 Block interaction until system is ready
+    if (!isAuthReady || isSubscriptionLoading) {
+      console.log("⏳ Still initializing, ignore tap");
+      return <CustomSplashScreen />;
+    }
+
+    if (subscriptionStatus === "FREE") {
+      router.push("/subscription");
+    } else {
+      setCurrentView("add-meal");
     }
   };
 
@@ -1009,21 +1025,7 @@ export default function CalorieScreen() {
         </View>
       </ScrollView>
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => {
-          // Only redirect if explicitly FREE and NOT loading
-          const isFree = subscriptionStatus === "FREE";
-          const isSubscriptionLoading =
-            useTaskStore.getState().isSubscriptionLoading;
-
-          if (isFree && !isSubscriptionLoading) {
-            router.push("/subscription");
-          } else {
-            setCurrentView("add-meal");
-          }
-        }}
-      >
+      <TouchableOpacity style={styles.fab} onPress={handlePress}>
         <Plus color="#FFF" size={32} />
       </TouchableOpacity>
     </View>

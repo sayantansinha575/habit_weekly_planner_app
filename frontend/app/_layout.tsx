@@ -26,6 +26,8 @@ import { supabase } from "@/src/services/supabase";
 import { useTaskStore } from "@/src/store/useTaskStore";
 import { authService } from "@/src/services/authService";
 import { iapService } from "@/src/services/iapService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Purchases from "react-native-purchases";
 
 // Handle notifications when the app is in foreground
 Notifications.setNotificationHandler({
@@ -85,38 +87,105 @@ export default function RootLayout() {
   //   return () => subscription.unsubscribe();
   // }, []);
 
+  // useEffect(() => {
+  //   // 1. Initial Session Check (Standard Supabase)
+  //   const init = async () => {
+  //     await useTaskStore.getState().loadSubscriptionStatus(); // Load persisted status immediately
+  //     await checkOnboardingStatus();
+  //     const {
+  //       data: { session },
+  //     } = await supabase.auth.getSession();
+
+  //     if (!session) {
+  //       useTaskStore.setState({ isInitializing: false, isAuthReady: true });
+  //     } else {
+  //       await setSession(session);
+  //     }
+
+  //     // Initialize RevenueCat
+  //     await iapService.configure();
+  //     if (session?.user?.id) {
+  //       await iapService.logIn(session.user.id);
+  //     }
+  //   };
+
+  //   init();
+
+  //   // 2. Auth State Listener
+  //   const {
+  //     data: { subscription },
+  //   } = supabase.auth.onAuthStateChange(async (_event, session) => {
+  //     await setSession(session);
+  //   });
+
+  //   return () => subscription.unsubscribe();
+  // }, []);
+
   useEffect(() => {
-    // 1. Initial Session Check (Standard Supabase)
+    let isMounted = true;
+
+    // 🔥 1. Configure RevenueCat FIRST
+    const setupRevenueCat = async () => {
+      await iapService.configure();
+      console.log("✅ RevenueCat configured");
+    };
+
+    // 🔥 2. Initialize app
     const init = async () => {
-      await useTaskStore.getState().loadSubscriptionStatus(); // Load persisted status immediately
+      await setupRevenueCat();
+
+      // Load cached PRO (fast UI)
+      await useTaskStore.getState().loadSubscriptionStatus();
+
       await checkOnboardingStatus();
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
       if (!session) {
-        useTaskStore.setState({ isInitializing: false, isAuthReady: true });
+        useTaskStore.setState({
+          isInitializing: false,
+          isAuthReady: true,
+        });
       } else {
+        // ✅ NOW RC is ready before this runs
         await setSession(session);
-      }
-
-      // Initialize RevenueCat
-      await iapService.configure();
-      if (session?.user?.id) {
-        await iapService.logIn(session.user.id);
       }
     };
 
     init();
 
-    // 2. Auth State Listener
+    // 🔥 3. Auth listener
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       await setSession(session);
     });
 
-    return () => subscription.unsubscribe();
+    // 🔥 4. RevenueCat real-time listener (ADD HERE ✅)
+    const rcListener = Purchases.addCustomerInfoUpdateListener((info) => {
+      const isPro =
+        info?.entitlements?.active &&
+        Object.keys(info.entitlements.active).length > 0;
+
+      const currentStatus = useTaskStore.getState().subscriptionStatus;
+
+      console.log("🎯 RC listener fired:", isPro);
+
+      if (isPro) {
+        useTaskStore.getState().setSubscriptionStatus("PRO");
+        AsyncStorage.setItem("@subscription_status", "PRO");
+      } else if (currentStatus !== "PRO") {
+        // prevent accidental downgrade
+        useTaskStore.getState().setSubscriptionStatus("FREE");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      // rcListener.remove(); // ✅ cleanup
+    };
   }, []);
 
   useEffect(() => {

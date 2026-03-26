@@ -104,80 +104,80 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   calAiProfile: null,
   calAiDashboard: null,
 
-  setSession: async (session) => {
-    // If no session, we are ready (logged out)
-    if (!session) {
-      console.log("No session provided to setSession");
-      // If we are still initializing, preserve the persisted status
-      // (Otherwise it gets wiped to FREE before getSession and verifySupabaseAuth complete)
-      const isInitializing = get().isInitializing;
-      const preservedStatus = get().subscriptionStatus;
+  // setSession: async (session) => {
+  //   // If no session, we are ready (logged out)
+  //   if (!session) {
+  //     console.log("No session provided to setSession");
+  //     // If we are still initializing, preserve the persisted status
+  //     // (Otherwise it gets wiped to FREE before getSession and verifySupabaseAuth complete)
+  //     const isInitializing = get().isInitializing;
+  //     const preservedStatus = get().subscriptionStatus;
 
-      set({
-        session: null,
-        user: null,
-        subscriptionStatus: isInitializing ? preservedStatus : "FREE",
-        isAuthReady: !isInitializing,
-        isAuthenticating: false,
-        hasCalAiLoaded: false,
-        calAiProfile: null,
-        calAiDashboard: null,
-      });
-      return;
-    }
+  //     set({
+  //       session: null,
+  //       user: null,
+  //       subscriptionStatus: isInitializing ? preservedStatus : "FREE",
+  //       isAuthReady: !isInitializing,
+  //       isAuthenticating: false,
+  //       hasCalAiLoaded: false,
+  //       calAiProfile: null,
+  //       calAiDashboard: null,
+  //     });
+  //     return;
+  //   }
 
-    console.log("Session found, starting verification...");
-    set({ session, isSubscriptionLoading: true });
+  //   console.log("Session found, starting verification...");
+  //   set({ session, isSubscriptionLoading: true });
 
-    // Verify with backend
-    try {
-      const { user } = await api.verifySupabaseAuth(session.access_token);
+  //   // Verify with backend
+  //   try {
+  //     const { user } = await api.verifySupabaseAuth(session.access_token);
 
-      const currentStatus = get().subscriptionStatus;
-      const backendStatus =
-        user.subscriptionStatus === "PREMIUM" ||
-        user.subscriptionStatus === "PRO"
-          ? "PRO"
-          : "FREE";
+  //     const currentStatus = get().subscriptionStatus;
+  //     const backendStatus =
+  //       user.subscriptionStatus === "PREMIUM" ||
+  //       user.subscriptionStatus === "PRO"
+  //         ? "PRO"
+  //         : "FREE";
 
-      // STICKY PRO: If we are already PRO (from local storage), do NOT downgrade to FREE
-      // based on backend yet. Let RevenueCat (iapService) be the final judge.
-      const finalStatus =
-        currentStatus === "PRO" || backendStatus === "PRO" ? "PRO" : "FREE";
+  //     // STICKY PRO: If we are already PRO (from local storage), do NOT downgrade to FREE
+  //     // based on backend yet. Let RevenueCat (iapService) be the final judge.
+  //     const finalStatus =
+  //       currentStatus === "PRO" || backendStatus === "PRO" ? "PRO" : "FREE";
 
-      console.log(
-        "Backend verification successful. Current:",
-        currentStatus,
-        "Backend:",
-        backendStatus,
-        "Final Sticky Status:",
-        finalStatus,
-      );
+  //     console.log(
+  //       "Backend verification successful. Current:",
+  //       currentStatus,
+  //       "Backend:",
+  //       backendStatus,
+  //       "Final Sticky Status:",
+  //       finalStatus,
+  //     );
 
-      set({
-        user,
-        subscriptionStatus: finalStatus,
-        isAuthReady: true,
-        isAuthenticating: false,
-        isOnboarding: !user.hasCompletedOnboarding,
-        isInitializing: false, // Done!
-      });
+  //     set({
+  //       user,
+  //       subscriptionStatus: finalStatus,
+  //       isAuthReady: true,
+  //       isAuthenticating: false,
+  //       isOnboarding: !user.hasCompletedOnboarding,
+  //       isInitializing: false, // Done!
+  //     });
 
-      // Persist status
-      await AsyncStorage.setItem("@subscription_status", finalStatus);
+  //     // Persist status
+  //     await AsyncStorage.setItem("@subscription_status", finalStatus);
 
-      // Configure RevenueCat and sync
-      await iapService.logIn(user.id);
-      await get().checkSubscription();
-    } catch (e) {
-      console.error("Session verification failed", e);
-      set({
-        isAuthReady: true,
-        isAuthenticating: false,
-        isSubscriptionLoading: false,
-      });
-    }
-  },
+  //     // Configure RevenueCat and sync
+  //     await iapService.logIn(user.id);
+  //     await get().checkSubscription();
+  //   } catch (e) {
+  //     console.error("Session verification failed", e);
+  //     set({
+  //       isAuthReady: true,
+  //       isAuthenticating: false,
+  //       isSubscriptionLoading: false,
+  //     });
+  //   }
+  // },
 
   // checkTrialStatus: () => {
   //   const { user } = get();
@@ -187,6 +187,69 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   //   const expiry = new Date(user.subscriptionEndDate);
   //   return now > expiry ? "expired" : "valid";
   // },
+
+  setSession: async (session) => {
+    if (!session) {
+      set({
+        session: null,
+        user: null,
+        isAuthReady: true,
+        isAuthenticating: false,
+        isSubscriptionLoading: false,
+        // hasCalAiLoaded: false,
+        // calAiProfile: null,
+        // calAiDashboard: null,
+      });
+      return;
+    }
+
+    set({
+      session,
+      isSubscriptionLoading: true,
+      isAuthReady: false,
+    });
+
+    try {
+      const { user } = await api.verifySupabaseAuth(session.access_token);
+
+      set({
+        user,
+        isInitializing: false,
+      });
+
+      // 🔥 STEP 1: LOGIN TO REVENUECAT (CRITICAL)
+      const info = await iapService.logIn(user.id);
+
+      const isPro =
+        info?.entitlements?.active &&
+        Object.keys(info.entitlements.active).length > 0;
+
+      if (isPro) {
+        console.log("✅ PRO restored from RevenueCat login");
+        set({ subscriptionStatus: "PRO" });
+        await AsyncStorage.setItem("@subscription_status", "PRO");
+      } else {
+        console.log("⏳ No entitlement yet, keep existing state");
+      }
+
+      // 🔥 STEP 2: DELAYED VALIDATION (prevents race condition)
+      setTimeout(() => {
+        get().checkSubscription();
+      }, 2000);
+
+      set({
+        isAuthReady: true,
+        isAuthenticating: false,
+      });
+    } catch (e) {
+      console.error("Session verification failed", e);
+      set({
+        isAuthReady: true,
+        isAuthenticating: false,
+        isSubscriptionLoading: false,
+      });
+    }
+  },
 
   checkTrialStatus: () => {
     const { user } = get();
@@ -206,7 +269,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       await iapService.signOut(); // RevenueCat logout
       await authService.signOut();
-      get().setSubscriptionStatus("FREE"); // This also clears AsyncStorage
+      // get().setSubscriptionStatus("FREE"); // This also clears AsyncStorage
       set({
         session: null,
         user: null,
@@ -451,36 +514,84 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     AsyncStorage.setItem("@subscription_status", status);
   },
 
+  // checkSubscription: async () => {
+  //   try {
+  //     set({ isSubscriptionLoading: true });
+  //     const info = await iapService.getCustomerInfo();
+  //     console.log("RevenueCat Customer Info:", info?.entitlements?.active);
+  //     const isPro = Object.keys(info?.entitlements?.active || {}).length > 0;
+
+  //     const newStatus = isPro ? "PRO" : "FREE";
+  //     const currentStatus = get().subscriptionStatus;
+
+  //     // Only update if it's a change to avoid unnecessary re-renders
+  //     if (currentStatus !== newStatus) {
+  //       console.log("Subscription status updated by RevenueCat:", newStatus);
+  //       set({
+  //         subscriptionStatus: newStatus,
+  //       });
+  //       await AsyncStorage.setItem("@subscription_status", newStatus);
+  //     }
+  //     set({ isSubscriptionLoading: false });
+  //   } catch (e) {
+  //     console.error("Subscription check failed", e);
+  //     set({ isSubscriptionLoading: false });
+  //   }
+  // },
+
   checkSubscription: async () => {
     try {
       set({ isSubscriptionLoading: true });
-      const info = await iapService.getCustomerInfo();
-      console.log("RevenueCat Customer Info:", info?.entitlements?.active);
-      const isPro = Object.keys(info?.entitlements?.active || {}).length > 0;
 
-      const newStatus = isPro ? "PRO" : "FREE";
+      const info = await iapService.getCustomerInfo();
+
+      const isPro =
+        info?.entitlements?.active &&
+        Object.keys(info.entitlements.active).length > 0;
+
       const currentStatus = get().subscriptionStatus;
 
-      // Only update if it's a change to avoid unnecessary re-renders
+      // 🔥 CRITICAL: NEVER downgrade blindly
+      if (currentStatus === "PRO" && !isPro) {
+        console.log("🛑 Prevented PRO downgrade (RC delay)");
+        set({ isSubscriptionLoading: false });
+        return;
+      }
+
+      const newStatus = isPro ? "PRO" : "FREE";
+
       if (currentStatus !== newStatus) {
-        console.log("Subscription status updated by RevenueCat:", newStatus);
-        set({
-          subscriptionStatus: newStatus,
-        });
+        console.log("✅ Subscription updated:", newStatus);
+        set({ subscriptionStatus: newStatus });
         await AsyncStorage.setItem("@subscription_status", newStatus);
       }
+
       set({ isSubscriptionLoading: false });
     } catch (e) {
       console.error("Subscription check failed", e);
       set({ isSubscriptionLoading: false });
     }
   },
+
+  // loadSubscriptionStatus: async () => {
+  //   try {
+  //     const status = await AsyncStorage.getItem("@subscription_status");
+  //     console.log("Loaded persisted status:", status);
+  //     if (status === "PRO" || status === "FREE") {
+  //       set({ subscriptionStatus: status as "PRO" | "FREE" });
+  //     }
+  //   } catch (e) {
+  //     console.error("Failed to load subscription status", e);
+  //   }
+  // },
+
   loadSubscriptionStatus: async () => {
     try {
       const status = await AsyncStorage.getItem("@subscription_status");
-      console.log("Loaded persisted status:", status);
-      if (status === "PRO" || status === "FREE") {
-        set({ subscriptionStatus: status as "PRO" | "FREE" });
+
+      if (status === "PRO") {
+        console.log("⚡ Loaded PRO from storage");
+        set({ subscriptionStatus: "PRO" });
       }
     } catch (e) {
       console.error("Failed to load subscription status", e);

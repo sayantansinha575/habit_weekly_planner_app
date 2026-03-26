@@ -162,11 +162,11 @@ const SubscriptionScreen = () => {
         <View style={styles.priceContainer}>
           <Text style={styles.priceText}>{pkg.product.priceString}</Text>
           <Text style={styles.priceSubtext}>
-            {pkg.packageType === "LIFETIME"
-              ? "forever"
-              : pkg.packageType === "ANNUAL"
-                ? "/ year"
-                : "/ month"}
+            {pkg.packageType === "WEEKLY"
+              ? "/ week"
+              : pkg.packageType === "MONTHLY"
+                ? "/ month"
+                : "/ year"}
           </Text>
         </View>
         {isSelected && (

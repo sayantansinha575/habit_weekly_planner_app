@@ -28,6 +28,7 @@ import EmptyState from "@/src/components/EmptyState";
 import { useFocusEffect } from "@react-navigation/native";
 import { Alert, TouchableWithoutFeedback, Modal } from "react-native";
 import { useRouter } from "expo-router";
+import CustomSplashScreen from "@/src/components/CustomSplashScreen";
 
 export default function PlannerScreen() {
   const router = useRouter();
@@ -40,6 +41,10 @@ export default function PlannerScreen() {
   const addTask = useTaskStore((state) => state.addTask);
   const updateTask = useTaskStore((state) => state.updateTask);
   const deleteTasks = useTaskStore((state) => state.deleteTasks);
+  const isAuthReady = useTaskStore((state) => state.isAuthReady);
+  const isSubscriptionLoading = useTaskStore(
+    (state) => state.isSubscriptionLoading,
+  );
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
@@ -155,6 +160,20 @@ export default function PlannerScreen() {
     );
   };
 
+  const handlePress = () => {
+    // 🚫 Block interaction until system is ready
+    if (!isAuthReady || isSubscriptionLoading) {
+      console.log("⏳ Still initializing, ignore tap");
+      return <CustomSplashScreen />;
+    }
+
+    if (subscriptionStatus === "FREE" && tasks.length >= 2) {
+      router.push("/subscription");
+    } else {
+      setModalVisible(true); // or setCurrentView("add-meal")
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
@@ -242,21 +261,7 @@ export default function PlannerScreen() {
           />
         </View>
 
-        <TouchableOpacity
-          style={styles.addGoalBtn}
-          onPress={() => {
-            // Only redirect if explicitly FREE and NOT loading
-            const isFree = subscriptionStatus === "FREE";
-            const isSubscriptionLoading =
-              useTaskStore.getState().isSubscriptionLoading;
-
-            if (isFree && !isSubscriptionLoading && tasks.length >= 2) {
-              router.push("/subscription");
-            } else {
-              setModalVisible(true);
-            }
-          }}
-        >
+        <TouchableOpacity style={styles.addGoalBtn} onPress={handlePress}>
           <Text style={styles.addGoalText}>+ Add Daily Goal</Text>
         </TouchableOpacity>
 

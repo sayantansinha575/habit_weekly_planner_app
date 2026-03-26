@@ -84,6 +84,13 @@ export const iapService = {
           icon: "Zap",
           description: "Perfect for getting started",
         };
+      case "WEEKLY":
+        return {
+          title: "Weekly",
+          badge: null,
+          icon: "Zap",
+          description: "Perfect for getting started",
+        };
       case "ANNUAL":
         return {
           title: "Yearly",
@@ -91,13 +98,13 @@ export const iapService = {
           icon: "Crown",
           description: "Save 40% annually",
         };
-      case "LIFETIME":
-        return {
-          title: "Lifetime",
-          badge: "One-Time",
-          icon: "Diamond",
-          description: "Pay once, keep forever",
-        };
+      // case "LIFETIME":
+      //   return {
+      //     title: "Lifetime",
+      //     badge: "One-Time",
+      //     icon: "Diamond",
+      //     description: "Pay once, keep forever",
+      //   };
       default:
         return {
           title: "Pro",

@@ -185,7 +185,9 @@ export default function ProfileScreen() {
               <Text style={styles.userName}>
                 {user?.username || "Eco Warrior"}
               </Text>
-              <Text style={styles.userEmail}>{user?.email}</Text>
+              <Text style={styles.userEmail}>
+                {user?.email || "Eco Warrior"}
+              </Text>
             </View>
           </Card>
 
