@@ -72,7 +72,7 @@ export default function PrivacyScreen() {
           <Text style={styles.sectionTitle}>5. Contact Us</Text>
           <Text style={styles.text}>
             If you have any questions about this Privacy Policy, please contact
-            us at support@weekora.com.
+            us at The email address is Support@weekora.ai
           </Text>
         </Card>
 
