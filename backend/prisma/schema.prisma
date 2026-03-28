@@ -38,6 +38,7 @@ model User {
   userAchievements  UserAchievement[]
   calAiProfile      CalAiProfile?
   calAiMeals        CalAiMeal[]
+  accountDeletionRequests AccountDeletionRequest[]
 }
 
 model Task {
@@ -162,4 +163,16 @@ model CalAiMeal {
 
   user    User          @relation(fields: [userId], references: [id])
   profile CalAiProfile? @relation(fields: [profileId], references: [id])
+}
+
+model AccountDeletionRequest {
+  id          String    @id @default(uuid())
+  userId      String
+  reason      String
+  status      String    @default("pending")
+  requestedAt DateTime  @default(now())
+  processedAt DateTime?
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@map("account_deletion_requests")
 }
