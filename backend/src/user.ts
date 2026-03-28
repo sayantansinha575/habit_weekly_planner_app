@@ -6,10 +6,10 @@ export const requestAccountDeletion = async (
 ) => {
   return await (prisma as any).accountDeletionRequest.create({
     data: {
-      userId,
+      user_id: userId,
       reason,
       status: "pending",
-      requestedAt: new Date(),
+      requested_at: new Date(),
     },
   });
 };
