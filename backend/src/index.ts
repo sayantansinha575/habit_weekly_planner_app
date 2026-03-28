@@ -28,6 +28,7 @@ import {
   resetTodayMeals,
   getCalAiProgress,
 } from "./cal-ai";
+import { requestAccountDeletion } from "./user";
 import { prisma } from "./prisma";
 import "./reminders";
 
@@ -324,6 +325,24 @@ app.get(
       const data = await getCalAiProgress(req.params.userId as string, days);
       res.json(data);
     } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+);
+
+app.post(
+  "/api/users/delete-request",
+  verifySupabaseToken,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { reason } = req.body;
+      if (!reason) {
+        return res.status(400).json({ error: "Reason is required" });
+      }
+      const result = await requestAccountDeletion(req.user?.id!, reason);
+      res.json(result);
+    } catch (e: any) {
+      console.error("Account deletion request error:", e);
       res.status(500).json({ error: e.message });
     }
   },
