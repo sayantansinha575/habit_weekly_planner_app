@@ -4,18 +4,21 @@ CREATE TYPE "SubscriptionStatus" AS ENUM ('FREE', 'TRIAL', 'PREMIUM', 'EXPIRED')
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
+    "supabaseId" TEXT,
     "email" TEXT NOT NULL,
-    "passwordHash" TEXT NOT NULL,
+    "passwordHash" TEXT,
     "whatsappNumber" TEXT,
     "username" TEXT,
     "profilePhotoUrl" TEXT,
-    "dailyStreak" INTEGER NOT NULL DEFAULT 0,
-    "weeklyStreak" INTEGER NOT NULL DEFAULT 0,
-    "streakFreezeCount" INTEGER NOT NULL DEFAULT 0,
-    "lastActiveAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT 'FREE',
+    "dailyStreak" INTEGER DEFAULT 0,
+    "weeklyStreak" INTEGER DEFAULT 0,
+    "streakFreezeCount" INTEGER DEFAULT 0,
+    "lastActiveAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+    "subscriptionStatus" TEXT NOT NULL DEFAULT 'FREE',
+    "subscriptionPlatform" TEXT,
     "trialStartDate" TIMESTAMP(3),
     "subscriptionEndDate" TIMESTAMP(3),
+    "subscriptionStartedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -121,6 +124,8 @@ CREATE TABLE "CalAiProfile" (
     "dateOfBirth" TIMESTAMP(3) NOT NULL,
     "gender" TEXT NOT NULL,
     "dailyStepGoal" INTEGER NOT NULL,
+    "streak" INTEGER NOT NULL DEFAULT 0,
+    "lastStreakUpdate" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -141,6 +146,22 @@ CREATE TABLE "CalAiMeal" (
 
     CONSTRAINT "CalAiMeal_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateTable
+CREATE TABLE "account_deletion_requests" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT,
+    "reason" TEXT,
+    "status" TEXT DEFAULT 'pending',
+    "requested_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+    "processed_at" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "account_deletion_requests_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_supabaseId_key" ON "User"("supabaseId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");

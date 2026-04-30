@@ -4,18 +4,21 @@ CREATE TYPE "SubscriptionStatus" AS ENUM ('FREE', 'TRIAL', 'PREMIUM', 'EXPIRED')
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
+    "supabaseId" TEXT,
     "email" TEXT NOT NULL,
-    "passwordHash" TEXT NOT NULL,
+    "passwordHash" TEXT,
     "whatsappNumber" TEXT,
     "username" TEXT,
     "profilePhotoUrl" TEXT,
-    "dailyStreak" INTEGER NOT NULL DEFAULT 0,
-    "weeklyStreak" INTEGER NOT NULL DEFAULT 0,
-    "streakFreezeCount" INTEGER NOT NULL DEFAULT 0,
-    "lastActiveAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT 'FREE',
+    "dailyStreak" INTEGER DEFAULT 0,
+    "weeklyStreak" INTEGER DEFAULT 0,
+    "streakFreezeCount" INTEGER DEFAULT 0,
+    "lastActiveAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+    "subscriptionStatus" TEXT NOT NULL DEFAULT 'FREE',
+    "subscriptionPlatform" TEXT,
     "trialStartDate" TIMESTAMP(3),
     "subscriptionEndDate" TIMESTAMP(3),
+    "subscriptionStartedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -111,6 +114,55 @@ CREATE TABLE "Quote" (
     CONSTRAINT "Quote_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "CalAiProfile" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "goalWeight" DOUBLE PRECISION NOT NULL,
+    "currentWeight" DOUBLE PRECISION NOT NULL,
+    "height" TEXT NOT NULL,
+    "dateOfBirth" TIMESTAMP(3) NOT NULL,
+    "gender" TEXT NOT NULL,
+    "dailyStepGoal" INTEGER NOT NULL,
+    "streak" INTEGER NOT NULL DEFAULT 0,
+    "lastStreakUpdate" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CalAiProfile_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CalAiMeal" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "profileId" TEXT,
+    "calories" INTEGER NOT NULL,
+    "protein" DOUBLE PRECISION NOT NULL,
+    "carbs" DOUBLE PRECISION NOT NULL,
+    "fats" DOUBLE PRECISION NOT NULL,
+    "description" TEXT NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CalAiMeal_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "account_deletion_requests" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT,
+    "reason" TEXT,
+    "status" TEXT DEFAULT 'pending',
+    "requested_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+    "processed_at" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "account_deletion_requests_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_supabaseId_key" ON "User"("supabaseId");
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -122,6 +174,9 @@ CREATE UNIQUE INDEX "NotificationPreference_userId_key" ON "NotificationPreferen
 
 -- CreateIndex
 CREATE UNIQUE INDEX "UserAchievement_userId_achievementId_key" ON "UserAchievement"("userId", "achievementId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CalAiProfile_userId_key" ON "CalAiProfile"("userId");
 
 -- AddForeignKey
 ALTER TABLE "Task" ADD CONSTRAINT "Task_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -137,3 +192,12 @@ ALTER TABLE "UserAchievement" ADD CONSTRAINT "UserAchievement_userId_fkey" FOREI
 
 -- AddForeignKey
 ALTER TABLE "UserAchievement" ADD CONSTRAINT "UserAchievement_achievementId_fkey" FOREIGN KEY ("achievementId") REFERENCES "Achievement"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CalAiProfile" ADD CONSTRAINT "CalAiProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CalAiMeal" ADD CONSTRAINT "CalAiMeal_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CalAiMeal" ADD CONSTRAINT "CalAiMeal_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "CalAiProfile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
