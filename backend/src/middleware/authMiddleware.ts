@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 
-const SUPABASE_URL = "https://vzxmrdlkrcjmaiiedxgk.supabase.co";
+const SUPABASE_URL = "https://glplkhjsacgdnsgumswj.supabase.co";
 
 const JWKS = createRemoteJWKSet(
   new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), //auth middleware
